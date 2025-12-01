@@ -38,7 +38,7 @@ public class TravelUser implements UserDetails {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_member_id_gen")
     @SequenceGenerator(name = "seq_member_id_gen", sequenceName = "SEQ_MEMBER_ID", allocationSize = 1)
     @Column(name = "memberid")
-    private Integer memberid; // TokenRepository 호환을 위해 Integer 유지
+    private Integer id; // TokenRepository 호환을 위해 Integer 유지
 
     @Column(length = 50)
     private String nickname;
