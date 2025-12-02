@@ -32,19 +32,20 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "TRAVEL_USER") // SQL 테이블명 반영
+@Table(name = "TRAVEL_USER")
 public class TravelUser implements UserDetails {
+
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_member_id_gen")
     @SequenceGenerator(name = "seq_member_id_gen", sequenceName = "SEQ_MEMBER_ID", allocationSize = 1)
     @Column(name = "memberid")
-    private Integer id; // TokenRepository 호환을 위해 Integer 유지
+    private Integer id;
 
     @Column(length = 50)
     private String nickname;
 
     @Column(length = 1)
-    private String gender; // 'M', 'F'
+    private String gender;
 
     private Integer age;
 
@@ -53,7 +54,7 @@ public class TravelUser implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "is_owner", length = 20)
-    private Role role; // USER, ADMIN
+    private Role role;
 
     @Builder.Default
     @Column(nullable = false)
@@ -76,13 +77,12 @@ public class TravelUser implements UserDetails {
     private List<Token> tokens;
 
     @OneToMany(mappedBy = "user")
-    private List<Route> routes;
+    private List<Route> routes;   // ← 여기 타입이 이제 제대로 Route로 매칭됨!
 
     @OneToMany(mappedBy = "user")
     private List<MemberLikeRoute> likedRoutes;
 
-    
-    
+
     // --- UserDetails 구현 ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -90,14 +90,10 @@ public class TravelUser implements UserDetails {
     }
 
     @Override
-    public String getUsername() {
-        return email;
-    }
+    public String getUsername() { return email; }
 
     @Override
-    public String getPassword() {
-        return password;
-    }
+    public String getPassword() { return password; }
 
     @Override
     public boolean isAccountNonExpired() { return true; }
@@ -105,7 +101,7 @@ public class TravelUser implements UserDetails {
     public boolean isAccountNonLocked() { return true; }
     @Override
     public boolean isCredentialsNonExpired() { return true; }
+
     @Override
     public boolean isEnabled() { return "N".equals(delflag); }
-
 }

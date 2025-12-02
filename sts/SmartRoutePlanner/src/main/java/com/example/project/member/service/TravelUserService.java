@@ -1,14 +1,20 @@
-// 수정 금지
 package com.example.project.member.service;
 
 import java.security.Principal;
+import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.example.project.member.domain.MemberLikeRoute;
 import com.example.project.member.domain.TravelUser;
+import com.example.project.member.dto.UpdateProfileRequest;
+import com.example.project.member.dto.UserInfoResponse;
+import com.example.project.member.repository.MemberLikeRouteRepository;
 import com.example.project.member.repository.TravelUserRepository;
+import com.example.project.route.domain.Route;
 import com.example.project.security.user.ChangePasswordRequest;
 
 import lombok.RequiredArgsConstructor;
