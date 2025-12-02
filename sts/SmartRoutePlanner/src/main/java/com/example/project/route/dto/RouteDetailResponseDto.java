@@ -7,6 +7,8 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.example.project.route.domain.Route;
+
 /**
  * 일정 상세 조회 응답 DTO
  */
@@ -15,12 +17,19 @@ import java.util.List;
 @AllArgsConstructor
 public class RouteDetailResponseDto {
 
-    private Long routeId;
+
+	private Long routeId;
     private Long memberId;
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;
-    private int totalDays;
 
     private List<DayItineraryDto> days; // 하루별 일정 리스트
+    
+    public RouteDetailResponseDto(Route route) {
+        this.routeId = route.getId();
+        this.title = route.getTitle();
+        this.startDate = route.getStartDate();
+        this.endDate = route.getEndDate();
+    }
 }

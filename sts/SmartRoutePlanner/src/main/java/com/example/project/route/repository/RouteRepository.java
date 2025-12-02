@@ -11,5 +11,5 @@ import java.util.List;
 public interface RouteRepository extends JpaRepository<Route, Long> {
 
     // 특정 회원이 만든 일정 목록 조회
-    List<Route> findByMemberId(Long memberId);
+	List<Route> findAllByUser_Id(Long memberId);    
 }

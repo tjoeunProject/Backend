@@ -19,6 +19,9 @@ public class TravelUserService {
 
     private final PasswordEncoder passwordEncoder;
     private final TravelUserRepository repository;
+    
+    
+    
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
 
         var user = (TravelUser) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();

@@ -12,4 +12,6 @@ public interface TravelUserRepository extends JpaRepository<TravelUser, Integer>
 
 	public Optional<TravelUser> findByEmail(String username);
 
+	public Optional<TravelUser> findById(Long memberId);
+
 }
