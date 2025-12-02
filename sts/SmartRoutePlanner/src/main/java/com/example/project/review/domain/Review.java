@@ -28,7 +28,7 @@ public class Review {
 
     private Long memberId;  // 작성자(멤버 ID)
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "CLOB")
     private String content; // 댓글 내용
 
     @CreationTimestamp

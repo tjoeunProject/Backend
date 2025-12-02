@@ -8,8 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import com.example.project.member.domain.MemberLikeRoute;
-import com.example.project.route.domain.Route;   // ← 올바른 Route import!!!
+import com.example.project.route.domain.Route;
 import com.example.project.security.token.Token;
 import com.example.project.security.user.Role;
 

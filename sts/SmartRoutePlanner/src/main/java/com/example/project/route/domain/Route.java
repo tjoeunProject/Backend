@@ -3,15 +3,13 @@ package com.example.project.route.domain;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+// 1. TravelUser 임포트 필수! (패키지 경로는 본인 프로젝트에 맞게 확인해주세요)
+import com.example.project.member.domain.TravelUser; 
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 여행 일정(Route)의 기본 정보 엔티티
- * - 제목, 기간, 만든 사람, 총 일수 등
- */
 @Entity
 @Table(name = "route")
 @Getter
@@ -22,16 +20,22 @@ public class Route {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;            // 일정 ID (PK)
 
-    private Long memberId;      // 일정을 만든 회원 ID (추후 Member 엔티티와 연관 가능)
+    // ================= [수정된 부분] =================
+    // 기존: private Long memberId; (단순 숫자값 X)
+    
+    // 변경: 객체 관계 매핑 (변수 이름을 반드시 'user'로 해야 mappedBy="user"와 연결됨)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id") // DB 테이블에 생길 컬럼 이름 (예: MEMBER_ID)
+    private TravelUser user; 
+    // ===============================================
 
-    private String title;       // 일정 제목 (예: 부산 2박 3일 여행)
+    private String title;       // 일정 제목
 
     private LocalDate startDate; // 시작 날짜
     private LocalDate endDate;   // 종료 날짜
 
-    private int totalDays;      // 총 일수 (endDate - startDate + 1 계산 결과)
+    private int totalDays;      // 총 일수
 
-    // Route 1개가 여러 RoutePlace(하루별 장소 목록)를 가짐
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoutePlace> routePlaces = new ArrayList<>();
 }
