@@ -24,10 +24,13 @@ public class RoutePlace {
     private Route route;
 
     // 어떤 장소(Place)를 가는지
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "place_id")
-    private Place place;
+    private Long placeId;
 
+ // ★ 추가 제안: 나중에 조회할 때 이름이 없으면 곤란하므로 이름도 같이 저장하는 게 좋습니다.
+    @Column(name = "place_name") 
+    private String placeName;
+    
     private int dayIndex;    // 몇 일차인지 (1, 2, 3...)
     private int orderIndex;  // 그날 몇 번째로 방문하는지 (1, 2, 3...)
 }
