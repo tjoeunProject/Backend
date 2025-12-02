@@ -1,0 +1,110 @@
+[
+  {
+    "id": "ChIJFaft2p-NaDURpWUIUUDNxCE",
+    "name": "해운대구",
+    "rating": 0,
+    "reviews": 0,
+    "lat": 35.1719465,
+    "lng": 129.1741038,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJqWqOqFeifDURpYJ5LnxX-Fw",
+    "name": "N서울타워",
+    "rating": 4.5,
+    "reviews": 65523,
+    "lat": 37.5511694,
+    "lng": 126.9882266,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJzZl9PXLraDURpgeBSXYqYSQ",
+    "name": "롯데호텔 부산",
+    "rating": 4.4,
+    "reviews": 4967,
+    "lat": 35.156766,
+    "lng": 129.05587,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJudkrFArpaDURbbCzajeQs0c",
+    "name": "자갈치시장",
+    "rating": 4,
+    "reviews": 26469,
+    "lat": 35.0966339,
+    "lng": 129.0307965,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJ71nrhe-kfDURL-9YeiFKdjA",
+    "name": "조양마트 조양시장점",
+    "rating": 4.4,
+    "reviews": 522,
+    "lat": 37.5390768,
+    "lng": 127.067169,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJm2cQmJmlfDURejJHVB-Pn0U",
+    "name": "성수동 카페거리",
+    "rating": 4.5,
+    "reviews": 32,
+    "lat": 37.5446148,
+    "lng": 127.0580149,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJwabeuxuMaDURXC4Rb21AQaE",
+    "name": "해동용궁사",
+    "rating": 4.4,
+    "reviews": 25969,
+    "lat": 35.1883491,
+    "lng": 129.2233197,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJN2x0fu2ifDUR51BupseGYmE",
+    "name": "국립중앙박물관",
+    "rating": 4.7,
+    "reviews": 27573,
+    "lat": 37.5238506,
+    "lng": 126.9804702,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJIyhMk2yjfDUR0NshJiURF5w",
+    "name": "아이파크몰 용산점",
+    "rating": 4.4,
+    "reviews": 2320,
+    "lat": 37.5297133,
+    "lng": 126.9647528,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJod7tSseifDUR9hXHLFNGMIs",
+    "name": "경복궁",
+    "rating": 4.6,
+    "reviews": 45557,
+    "lat": 37.579617,
+    "lng": 126.977041,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJT8H4r9qifDURmuXJ_6m6vM0",
+    "name": "북촌 한옥마을",
+    "rating": 4.4,
+    "reviews": 23473,
+    "lat": 37.5814696,
+    "lng": 126.9849519,
+    "type": "searched"
+  },
+  {
+    "id": "ChIJ6RPSci2jfDURXTSdf7JjYp8",
+    "name": "낙산공원",
+    "rating": 4.5,
+    "reviews": 5954,
+    "lat": 37.5806571,
+    "lng": 127.0074835,
+    "type": "searched"
+  }
+]
