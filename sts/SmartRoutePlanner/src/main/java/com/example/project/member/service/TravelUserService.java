@@ -1,21 +1,26 @@
-package com.example.project.security.user;
+package com.example.project.member.service;
 
-import lombok.RequiredArgsConstructor;
+import java.security.Principal;
+
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
+import com.example.project.member.domain.TravelUser;
+import com.example.project.member.repository.TravelUserRepository;
+import com.example.project.security.user.ChangePasswordRequest;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class TravelUserService {
 
     private final PasswordEncoder passwordEncoder;
-    private final UserRepository repository;
+    private final TravelUserRepository repository;
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
 
-        var user = (User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
+        var user = (TravelUser) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
 
         // check if the current password is correct
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {

@@ -9,7 +9,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import com.example.project.security.user.User;
+import com.example.project.member.domain.TravelUser;
+
 
 public class ApplicationAuditAware implements AuditorAware<Integer> {
     @Override
@@ -25,7 +26,7 @@ public class ApplicationAuditAware implements AuditorAware<Integer> {
             return Optional.empty();
         }
 
-        User userPrincipal = (User) authentication.getPrincipal();
+        TravelUser userPrincipal = (TravelUser) authentication.getPrincipal();
         return Optional.ofNullable(userPrincipal.getId());
     }
 }
