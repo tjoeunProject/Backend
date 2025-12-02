@@ -25,7 +25,88 @@ public class TravelUserService {
 
     private final PasswordEncoder passwordEncoder;
     private final TravelUserRepository repository;
-    
+    private final MemberLikeRouteRepository likeRepository;
+
+    // ================================
+    // ❗ 1) 내 정보 조회
+    // ================================
+    public UserInfoResponse getMyInfo(Principal principal) {
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        return new UserInfoResponse(
+                user.getId(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getAge(),
+                user.getGender(),
+                user.getRole()
+        );
+    }
+
+    // ================================
+    // ❗ 2) 프로필 수정 (닉네임, 성별, 나이)
+    // ================================
+    public TravelUser updateProfile(Principal principal, UpdateProfileRequest req) {
+
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        user.setNickname(req.getNickname());
+        user.setGender(req.getGender());
+        user.setAge(req.getAge());
+
+        return repository.save(user);
+    }
+
+    // ================================
+    // ❗ 3) 회원 탈퇴 (soft delete)
+    // ================================
+    public void deleteUser(Principal principal) {
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        user.setDelflag("Y");
+        user.setDeletedate(LocalDate.now());
+        repository.save(user);
+    }
+
+    // ================================
+    // ❗ 4) 회원 복구
+    // ================================
+    public void restoreUser(Principal principal) {
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        user.setDelflag("N");
+        user.setDeletedate(null);
+        repository.save(user);
+    }
+
+    // ================================
+    // ❗ 5) 좋아요한 루트 목록 조회
+    // ================================
+    public List<MemberLikeRoute> getMyLikedRoutes(Principal principal) {
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        return likeRepository.findByUser(user);
+    }
+
+    // ================================
+    // ❗ 6) 내가 만든 루트 목록 조회
+    // ================================
+    public List<Route> getMyCreatedRoutes(Principal principal) {
+
+        TravelUser user = repository.findByEmail(principal.getName())
+                .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
+
+        return user.getRoutes();
+    }
+
+    // ================================
+    // ❗❗❗ 수정 금지 — 원본 그대로 유지 ❗❗❗
+    // ================================
     
     
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
