@@ -28,16 +28,19 @@ import java.util.List;
 @NoArgsConstructor
 public class RouteCreateRequestDto {
 
-    private Long memberId;
-    private String title;
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private Long memberId;                 // 일정 작성자
+    private String title;                  // 일정 제목
+    private LocalDate startDate;           // 시작일
+    private LocalDate endDate;             // 종료일
 
-    /** 2차원 배열 형태의 일정 정보 */
+    /**
+     * 2차원 배열 형태의 일정 정보 (일자별 장소 목록)
+     * 예: places.get(0) = 1일차 리스트
+     */
     private List<List<SimplePlaceDto>> places;
 
     /**
-     * 일정 생성 시 장소 하나를 표현하는 간단 DTO
+     * 일정 생성 시 장소 하나를 표현하는 DTO
      */
     @Data
     @NoArgsConstructor

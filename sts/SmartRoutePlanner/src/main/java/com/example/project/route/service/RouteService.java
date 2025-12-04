@@ -53,7 +53,7 @@ public class RouteService {
     @Transactional
     public Long createRoute(RouteCreateRequestDto dto) {
 
-        // TravelUser PK가 Integer이므로 intValue()로 변환
+        // TravelUser PK는 Integer → DTO는 Long → 변환 필요
         TravelUser user = travelUserRepository.findById(dto.getMemberId().intValue())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + dto.getMemberId()));
 
@@ -73,7 +73,8 @@ public class RouteService {
             for (RouteCreateRequestDto.SimplePlaceDto sp : dailyPlaces) {
 
                 Place place = placeRepository.findById(sp.getPlaceId())
-                        .orElseThrow(() -> new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
+                        .orElseThrow(() ->
+                                new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
 
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(saved);
@@ -98,7 +99,8 @@ public class RouteService {
     public RouteDetailResponseDto getRouteDetail(Long routeId) {
 
         Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Route not found id=" + routeId));
 
         List<RoutePlace> places =
                 routePlaceRepository.findByRouteIdOrderByDayIndexAscOrderIndexAsc(routeId);
@@ -136,7 +138,8 @@ public class RouteService {
      */
     public List<RouteListItemDto> getRoutesByMember(Long memberId) {
 
-        List<Route> routes = routeRepository.findAllByUser_Id(memberId.intValue());
+        List<Route> routes =
+                routeRepository.findAllByUser_Id(memberId.intValue());
 
         return routes.stream()
                 .map(RouteListItemDto::new)
@@ -151,13 +154,15 @@ public class RouteService {
     public void updateRoute(Long routeId, RouteCreateRequestDto dto) {
 
         Route route = routeRepository.findById(routeId)
-                .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Route not found id=" + routeId));
 
         route.setTitle(dto.getTitle());
         route.setStartDate(dto.getStartDate());
         route.setEndDate(dto.getEndDate());
         route.setTotalDays(dto.getPlaces().size());
 
+        // 기존 모든 RoutePlace 제거
         routePlaceRepository.deleteByRouteId(routeId);
 
         int dayIndex = 1;
@@ -167,7 +172,8 @@ public class RouteService {
             for (RouteCreateRequestDto.SimplePlaceDto sp : daily) {
 
                 Place place = placeRepository.findById(sp.getPlaceId())
-                        .orElseThrow(() -> new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
+                        .orElseThrow(() ->
+                                new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
 
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(route);
@@ -188,6 +194,7 @@ public class RouteService {
      */
     @Transactional
     public void deleteRoute(Long routeId) {
+        // 순서 주의! RoutePlace 먼저 삭제
         routePlaceRepository.deleteByRouteId(routeId);
         routeRepository.deleteById(routeId);
     }

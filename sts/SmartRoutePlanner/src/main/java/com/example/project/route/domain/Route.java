@@ -9,10 +9,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * 여행 일정(Route)의 기본 정보 엔티티
- * - 제목, 기간, 만든 사람, 총 일수 등
- */
 @Entity
 @Table(name = "route")
 @Getter

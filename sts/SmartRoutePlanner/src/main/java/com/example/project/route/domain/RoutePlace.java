@@ -16,6 +16,10 @@ import lombok.Setter;
  *  - 각 RoutePlace는 특정 Place와 연결됨
  *  - dayIndex: 몇 일차인지
  *  - orderIndex: 해당 날짜에서 방문 순서
+ *
+ * 주의:
+ *  - placeId를 Long 필드로 직접 저장하지 않고
+ *    Place 엔티티와의 연관관계를 통해 관리한다.
  */
 @Entity
 @Table(name = "route_place")
