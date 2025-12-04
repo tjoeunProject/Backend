@@ -1,78 +1,78 @@
 package com.example.project.review.service;
 
+import com.example.project.member.domain.TravelUser;
+import com.example.project.member.repository.TravelUserRepository;
 import com.example.project.review.domain.Review;
 import com.example.project.review.dto.ReviewCreateRequestDto;
 import com.example.project.review.dto.ReviewResponseDto;
 import com.example.project.review.repository.ReviewRepository;
+import com.example.project.route.domain.Route;
+import com.example.project.route.repository.RouteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.Principal;
 import java.util.List;
 
-/**
- * 리뷰 생성, 조회, 수정, 삭제를 처리하는 서비스
- */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final TravelUserRepository travelUserRepository;
+    private final RouteRepository routeRepository;
 
-    /**
-     * 리뷰 작성
-     */
-    public Long createReview(ReviewCreateRequestDto dto) {
+    public Long createReview(ReviewCreateRequestDto dto, Principal principal) {
+
+        TravelUser user = travelUserRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new IllegalArgumentException("로그인 정보가 유효하지 않습니다."));
+
+        Route route = routeRepository.findById(dto.getRouteId())
+                .orElseThrow(() -> new IllegalArgumentException("없는 routeId: " + dto.getRouteId()));
 
         Review review = new Review();
-        review.setRouteId(dto.getRouteId());
+        review.setRoute(route);
+        review.setUser(user);
         review.setDayIndex(dto.getDayIndex());
-        review.setMemberId(dto.getMemberId());
         review.setContent(dto.getContent());
 
         Review saved = reviewRepository.save(review);
         return saved.getId();
     }
 
-    /**
-     * 특정 일정의 특정 일자 리뷰 목록 조회
-     */
     @Transactional(readOnly = true)
     public List<ReviewResponseDto> getReviews(Long routeId, int dayIndex) {
 
         return reviewRepository
-                .findByRouteIdAndDayIndexOrderByCreatedAtAsc(routeId, dayIndex)
+                .findByRoute_IdAndDayIndexOrderByCreatedAtAsc(routeId, dayIndex)
                 .stream()
-                .map(r -> new ReviewResponseDto(
-                        r.getId(),
-                        r.getMemberId(),
-                        r.getContent(),
-                        r.getCreatedAt(),
-                        r.getUpdatedAt()))
+                .map(ReviewResponseDto::new)
                 .toList();
     }
 
-    /**
-     * 리뷰 수정
-     */
-    public void updateReview(Long reviewId, ReviewCreateRequestDto dto) {
+    public void updateReview(Long reviewId, ReviewCreateRequestDto dto, Principal principal) {
 
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new IllegalArgumentException("없는 reviewId: " + reviewId));
 
+        if (!review.getUser().getEmail().equals(principal.getName())) {
+            throw new IllegalArgumentException("본인만 수정할 수 있습니다.");
+        }
+
         review.setContent(dto.getContent());
     }
 
-    /**
-     * 리뷰 삭제
-     */
-    public void deleteReview(Long reviewId) {
+    public void deleteReview(Long reviewId, Principal principal) {
 
-        if (!reviewRepository.existsById(reviewId)) {
-            throw new IllegalArgumentException("없는 reviewId: " + reviewId);
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new IllegalArgumentException("없는 reviewId: " + reviewId));
+
+        if (!review.getUser().getEmail().equals(principal.getName())) {
+            throw new IllegalArgumentException("본인만 삭제할 수 있습니다.");
         }
 
-        reviewRepository.deleteById(reviewId);
+        reviewRepository.delete(review);
     }
 }

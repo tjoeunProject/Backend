@@ -8,7 +8,15 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * 일정 상세 조회 응답 DTO
+ * RouteDetailResponseDto
+ * ---------------------------------------
+ * 일정 상세 조회 응답 DTO.
+ *
+ * 포함 정보:
+ *  - routeId: 일정 PK
+ *  - memberId: 작성자 ID
+ *  - title, startDate, endDate
+ *  - days: DayItineraryDto 리스트 (일자별 장소 리스트)
  */
 @Getter
 @Setter
@@ -20,7 +28,5 @@ public class RouteDetailResponseDto {
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;
-    private int totalDays;
-
-    private List<DayItineraryDto> days; // 하루별 일정 리스트
+    private List<DayItineraryDto> days;
 }

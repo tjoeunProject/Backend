@@ -1,5 +1,7 @@
 package com.example.project.review.domain;
 
+import com.example.project.member.domain.TravelUser;
+import com.example.project.route.domain.Route;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,10 +10,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * 여행 일정(Route)의 특정 일자(dayIndex)에 대해
- * 멤버(memberId)가 남기는 리뷰(댓글) 엔티티
- */
 @Entity
 @Table(name = "review")
 @Getter
@@ -20,20 +18,24 @@ public class Review {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;     // 리뷰 PK
+    private Long id;
 
-    private Long routeId;   // 어떤 일정에 대한 리뷰인지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "route_id", nullable = false)
+    private Route route;
 
-    private int dayIndex;   // 몇 일차의 리뷰인지
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "memberid", nullable = false)
+    private TravelUser user;
 
-    private Long memberId;  // 작성자(멤버 ID)
+    private int dayIndex;
 
     @Column(columnDefinition = "TEXT")
-    private String content; // 댓글 내용
+    private String content;
 
     @CreationTimestamp
-    private LocalDateTime createdAt; // 작성 시간
+    private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt; // 수정 시간
+    private LocalDateTime updatedAt;
 }

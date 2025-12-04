@@ -10,6 +10,9 @@ import java.util.List;
  */
 public interface RouteRepository extends JpaRepository<Route, Long> {
 
-    // 특정 회원이 만든 일정 목록 조회
-    List<Route> findByMemberId(Long memberId);
+    /**
+     * 특정 회원이 만든 일정 목록 조회
+     * TravelUser의 PK는 Integer라서 Integer 타입을 사용한다.
+     */
+    List<Route> findAllByUser_Id(Integer memberId);
 }
