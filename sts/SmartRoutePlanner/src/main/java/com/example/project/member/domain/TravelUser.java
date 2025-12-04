@@ -37,7 +37,11 @@ public class TravelUser implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "seq_member_id_gen")
-    @SequenceGenerator(name = "seq_member_id_gen", sequenceName = "SEQ_MEMBER_ID", allocationSize = 1)
+    @SequenceGenerator(
+            name = "seq_member_id_gen",
+            sequenceName = "SEQ_MEMBER_ID",
+            allocationSize = 1
+    )
     @Column(name = "memberid")
     private Integer id;
 
@@ -72,36 +76,47 @@ public class TravelUser implements UserDetails {
     @Column(length = 300)
     private String password;
 
-    // --- 연관 관계 매핑 ---
     @OneToMany(mappedBy = "user")
     private List<Token> tokens;
 
     @OneToMany(mappedBy = "user")
-    private List<Route> routes;   // ← 여기 타입이 이제 제대로 Route로 매칭됨!
+    private List<Route> routes;
 
     @OneToMany(mappedBy = "user")
     private List<MemberLikeRoute> likedRoutes;
 
-
-    // --- UserDetails 구현 ---
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(role.name()));
     }
 
     @Override
-    public String getUsername() { return email; }
+    public String getUsername() { 
+        return email; 
+    }
 
     @Override
-    public String getPassword() { return password; }
+    public String getPassword() { 
+        return password; 
+    }
 
     @Override
-    public boolean isAccountNonExpired() { return true; }
-    @Override
-    public boolean isAccountNonLocked() { return true; }
-    @Override
-    public boolean isCredentialsNonExpired() { return true; }
+    public boolean isAccountNonExpired() { 
+        return true; 
+    }
 
     @Override
-    public boolean isEnabled() { return "N".equals(delflag); }
+    public boolean isAccountNonLocked() { 
+        return true; 
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() { 
+        return true; 
+    }
+
+    @Override
+    public boolean isEnabled() { 
+        return "N".equals(delflag); 
+    }
 }

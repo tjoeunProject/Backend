@@ -13,6 +13,6 @@ import lombok.Setter;
 public class PlaceSummaryDto {
 
     private Long placeId;
-    private String name;     // Place 이름
-    private int orderIndex;  // 그날 방문 순서
+    private String name;
+    private int orderIndex;
 }
