@@ -107,6 +107,8 @@ public class TravelUserService {
     // ================================
     // ❗❗❗ 수정 금지 — 원본 그대로 유지 ❗❗❗
     // ================================
+    
+    
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
 
         var user = (TravelUser) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();

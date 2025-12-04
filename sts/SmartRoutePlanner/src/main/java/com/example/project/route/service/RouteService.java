@@ -141,6 +141,7 @@ public class RouteService {
         List<Route> routes =
                 routeRepository.findAllByUser_Id(memberId.intValue());
 
+        // List<Route> -> List<RouteListItemDto> 변환
         return routes.stream()
                 .map(RouteListItemDto::new)
                 .collect(Collectors.toList());

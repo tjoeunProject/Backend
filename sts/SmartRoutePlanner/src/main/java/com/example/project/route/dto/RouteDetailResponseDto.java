@@ -7,6 +7,8 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.example.project.route.domain.Route;
+
 /**
  * RouteDetailResponseDto
  * ---------------------------------------
@@ -23,7 +25,8 @@ import java.util.List;
 @AllArgsConstructor
 public class RouteDetailResponseDto {
 
-    private Long routeId;
+
+	private Long routeId;
     private Long memberId;
     private String title;
     private LocalDate startDate;

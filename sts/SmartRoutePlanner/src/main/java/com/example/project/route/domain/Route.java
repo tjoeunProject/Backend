@@ -4,6 +4,8 @@ import com.example.project.member.domain.TravelUser;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+// 1. TravelUser 임포트 필수! (패키지 경로는 본인 프로젝트에 맞게 확인해주세요)
+import com.example.project.member.domain.TravelUser; 
 
 import java.time.LocalDate;
 import java.util.ArrayList;
