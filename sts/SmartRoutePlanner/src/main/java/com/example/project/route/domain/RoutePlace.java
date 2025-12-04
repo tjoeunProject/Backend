@@ -6,7 +6,20 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 하루(dayIndex) 안에서 어떤 장소(place)를 몇 번째(orderIndex)로 방문하는지 나타내는 엔티티
+ * RoutePlace
+ * ---------------------------------------
+ * 하나의 일정(Route) 안에서 특정 장소(Place)를
+ * 몇 일차(dayIndex), 몇 번째(orderIndex)에 방문하는지 기록하는 엔티티.
+ *
+ * 역할:
+ *  - Route 1개에는 여러 RoutePlace가 연결됨
+ *  - 각 RoutePlace는 특정 Place와 연결됨
+ *  - dayIndex: 몇 일차인지
+ *  - orderIndex: 해당 날짜에서 방문 순서
+ *
+ * 주의:
+ *  - placeId를 Long 필드로 직접 저장하는 방식은 사용하지 않음
+ *  - 반드시 Place 엔티티와 ManyToOne으로 연동되어야 상세 조회가 가능
  */
 @Entity
 @Table(name = "route_place")
@@ -16,21 +29,25 @@ public class RoutePlace {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // PK
+    private Long id;
 
-    // 어떤 일정(Route)에 속하는지
+    /** 이 RoutePlace가 속한 일정 */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "route_id")
+    @JoinColumn(name = "route_id", nullable = false)
     private Route route;
 
-    // 어떤 장소(Place)를 가는지
-    @JoinColumn(name = "place_id")
-    private Long placeId;
+    /** 방문하는 장소 (Place 엔티티) */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "place_id", nullable = false)
+    private Place place;
 
- // ★ 추가 제안: 나중에 조회할 때 이름이 없으면 곤란하므로 이름도 같이 저장하는 게 좋습니다.
-    @Column(name = "place_name") 
+    /** 조회 속도 향상을 위해 placeName도 저장 */
+    @Column(name = "place_name")
     private String placeName;
-    
-    private int dayIndex;    // 몇 일차인지 (1, 2, 3...)
-    private int orderIndex;  // 그날 몇 번째로 방문하는지 (1, 2, 3...)
+
+    /** 몇 일차인지 (1일부터 시작) */
+    private int dayIndex;
+
+    /** 해당 날짜에서 몇 번째 방문인지 */
+    private int orderIndex;
 }
