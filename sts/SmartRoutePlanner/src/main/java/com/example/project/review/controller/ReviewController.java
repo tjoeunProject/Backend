@@ -19,7 +19,7 @@ import java.util.List;
  *  - 리뷰 삭제
  *
  * 회원 정보는 Security(로그인)에서 관리하며
- * 컨트롤러에서는 Principal을 통해 현재 로그인한 유저 정보를 읽어온다.
+ * 컨트롤러에서는 Principal을 통해 현재 로그인한 유저를 사용한다.
  */
 @RestController
 @RequiredArgsConstructor
@@ -31,6 +31,9 @@ public class ReviewController {
     /**
      * 리뷰 작성
      * POST /api/review
+     *
+     * 요청 본문에 routeId, dayIndex, content를 담고,
+     * 로그인 정보는 Principal에서 가져온다.
      */
     @PostMapping
     public Long createReview(@RequestBody ReviewCreateRequestDto dto,
@@ -51,6 +54,8 @@ public class ReviewController {
     /**
      * 리뷰 수정
      * PUT /api/review/{reviewId}
+     *
+     * 본인 댓글만 수정 가능하며, Principal을 이용해 작성자 검증을 수행한다.
      */
     @PutMapping("/{reviewId}")
     public void updateReview(@PathVariable Long reviewId,
@@ -62,6 +67,8 @@ public class ReviewController {
     /**
      * 리뷰 삭제
      * DELETE /api/review/{reviewId}
+     *
+     * 본인 댓글만 삭제 가능하다.
      */
     @DeleteMapping("/{reviewId}")
     public void deleteReview(@PathVariable Long reviewId,

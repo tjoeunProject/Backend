@@ -32,7 +32,11 @@ public class ReviewService {
     private final TravelUserRepository travelUserRepository;
 
     /**
-     * 리뷰 작성
+     * 리뷰 작성.
+     *
+     * 1) Principal에서 이메일을 꺼내 회원 조회
+     * 2) routeId로 Route 조회
+     * 3) Review 엔티티 생성 후 저장
      */
     @Transactional
     public Long createReview(ReviewCreateRequestDto dto, Principal principal) {
