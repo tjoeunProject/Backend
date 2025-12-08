@@ -56,9 +56,10 @@ public class TravelUser implements UserDetails {
     @Column(length = 100, unique = true)
     private String email;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "is_owner", length = 20)
-    private Role role;
+    private Role role = Role.USER;
 
     @Builder.Default
     @Column(nullable = false)

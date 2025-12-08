@@ -14,10 +14,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TestController {
 
-
     @GetMapping
     public ResponseEntity<String> test() {
         return ResponseEntity.ok("test");
     }
-
 }
