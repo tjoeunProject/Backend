@@ -30,12 +30,14 @@ public class Review {
 
     private int dayIndex;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(length = 4000)
     private String content;
 
+    /** 작성 시간 */
     @CreationTimestamp
     private LocalDateTime createdAt;
 
+    /** 수정 시간 */
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }

@@ -26,7 +26,7 @@ import com.example.project.route.domain.Route;
 public class RouteDetailResponseDto {
 
 
-	private Long routeId;
+	private Long routeId;   
     private Long memberId;
     private String title;
     private LocalDate startDate;

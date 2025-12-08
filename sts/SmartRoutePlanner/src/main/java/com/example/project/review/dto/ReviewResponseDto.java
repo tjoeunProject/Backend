@@ -31,12 +31,10 @@ public class ReviewResponseDto {
      */
     public ReviewResponseDto(Review review) {
         this.reviewId = review.getId();
-
         if (review.getUser() != null && review.getUser().getId() != null) {
             this.memberId = review.getUser().getId().longValue();
             this.nickname = review.getUser().getNickname();
         }
-
         this.content = review.getContent();
         this.createdAt = review.getCreatedAt();
         this.updatedAt = review.getUpdatedAt();

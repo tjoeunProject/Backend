@@ -25,15 +25,7 @@ import java.util.stream.Collectors;
 
 /**
  * RouteService
- * ---------------------------------------
- * 일정(Route)과 관련된 비즈니스 로직을 처리하는 서비스.
- *
- * 기능:
- *  - 일정 생성
- *  - 일정 상세 조회
- *  - 일정 목록 조회
- *  - 일정 수정
- *  - 일정 삭제
+ * 일정(Route) 관련 비즈니스 로직 처리
  */
 @Service
 @RequiredArgsConstructor
@@ -47,15 +39,13 @@ public class RouteService {
 
     /**
      * 일정 생성
-     * 1) Route 저장
-     * 2) RoutePlace들을 dayIndex, orderIndex에 맞게 저장
      */
     @Transactional
     public Long createRoute(RouteCreateRequestDto dto) {
 
-        // TravelUser PK는 Integer → DTO는 Long → 변환 필요
         TravelUser user = travelUserRepository.findById(dto.getMemberId().intValue())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다. id=" + dto.getMemberId()));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("회원 없음 id=" + dto.getMemberId()));
 
         Route route = new Route();
         route.setUser(user);
@@ -67,10 +57,10 @@ public class RouteService {
         Route saved = routeRepository.save(route);
 
         int dayIndex = 1;
-        for (List<RouteCreateRequestDto.SimplePlaceDto> dailyPlaces : dto.getPlaces()) {
-            int orderIndex = 1;
+        for (List<RouteCreateRequestDto.SimplePlaceDto> day : dto.getPlaces()) {
 
-            for (RouteCreateRequestDto.SimplePlaceDto sp : dailyPlaces) {
+            int orderIndex = 1;
+            for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
                 Place place = placeRepository.findById(sp.getPlaceId())
                         .orElseThrow(() ->
@@ -94,7 +84,6 @@ public class RouteService {
 
     /**
      * 일정 상세 조회
-     * RoutePlace를 dayIndex → orderIndex 순으로 정렬하여 DTO 형태로 조립한다.
      */
     public RouteDetailResponseDto getRouteDetail(Long routeId) {
 
@@ -105,16 +94,15 @@ public class RouteService {
         List<RoutePlace> places =
                 routePlaceRepository.findByRouteIdOrderByDayIndexAscOrderIndexAsc(routeId);
 
-        Map<Integer, List<PlaceSummaryDto>> grouped = places.stream()
-                .collect(Collectors.groupingBy(
+        Map<Integer, List<PlaceSummaryDto>> grouped =
+                places.stream().collect(Collectors.groupingBy(
                         RoutePlace::getDayIndex,
                         LinkedHashMap::new,
                         Collectors.mapping(
                                 rp -> new PlaceSummaryDto(
                                         rp.getPlace().getId(),
                                         rp.getPlaceName(),
-                                        rp.getOrderIndex()
-                                ),
+                                        rp.getOrderIndex()),
                                 Collectors.toList()
                         )
                 ));
@@ -149,7 +137,6 @@ public class RouteService {
 
     /**
      * 일정 수정
-     * 기존 RoutePlace를 전부 삭제 후 새로 저장하는 방식 사용
      */
     @Transactional
     public void updateRoute(Long routeId, RouteCreateRequestDto dto) {
@@ -163,14 +150,13 @@ public class RouteService {
         route.setEndDate(dto.getEndDate());
         route.setTotalDays(dto.getPlaces().size());
 
-        // 기존 모든 RoutePlace 제거
         routePlaceRepository.deleteByRouteId(routeId);
 
         int dayIndex = 1;
-        for (List<RouteCreateRequestDto.SimplePlaceDto> daily : dto.getPlaces()) {
-            int orderIndex = 1;
+        for (List<RouteCreateRequestDto.SimplePlaceDto> day : dto.getPlaces()) {
 
-            for (RouteCreateRequestDto.SimplePlaceDto sp : daily) {
+            int orderIndex = 1;
+            for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
                 Place place = placeRepository.findById(sp.getPlaceId())
                         .orElseThrow(() ->
@@ -195,7 +181,6 @@ public class RouteService {
      */
     @Transactional
     public void deleteRoute(Long routeId) {
-        // 순서 주의! RoutePlace 먼저 삭제
         routePlaceRepository.deleteByRouteId(routeId);
         routeRepository.deleteById(routeId);
     }
