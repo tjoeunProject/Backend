@@ -1,5 +1,6 @@
 package com.example.project.route.domain;
 
+import com.example.project.member.domain.TravelUser;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,23 +19,22 @@ public class Route {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;            // 일정 ID (PK)
+    private Long id;
 
-    // ================= [수정된 부분] =================
-    // 기존: private Long memberId; (단순 숫자값 X)
-    
-    // 변경: 객체 관계 매핑 (변수 이름을 반드시 'user'로 해야 mappedBy="user"와 연결됨)
+    /**
+     * TravelUser와의 연관관계
+     * Route N : 1 User
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id") // DB 테이블에 생길 컬럼 이름 (예: MEMBER_ID)
-    private TravelUser user; 
-    // ===============================================
+    @JoinColumn(name = "memberid", nullable = false)
+    private TravelUser user;
 
-    private String title;       // 일정 제목
+    private String title;
 
-    private LocalDate startDate; // 시작 날짜
-    private LocalDate endDate;   // 종료 날짜
+    private LocalDate startDate;
+    private LocalDate endDate;
 
-    private int totalDays;      // 총 일수
+    private int totalDays;
 
     @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoutePlace> routePlaces = new ArrayList<>();

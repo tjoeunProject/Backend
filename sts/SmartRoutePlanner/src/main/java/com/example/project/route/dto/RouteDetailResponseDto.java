@@ -10,7 +10,15 @@ import java.util.List;
 import com.example.project.route.domain.Route;
 
 /**
- * 일정 상세 조회 응답 DTO
+ * RouteDetailResponseDto
+ * ---------------------------------------
+ * 일정 상세 조회 응답 DTO.
+ *
+ * 포함 정보:
+ *  - routeId: 일정 PK
+ *  - memberId: 작성자 ID
+ *  - title, startDate, endDate
+ *  - days: DayItineraryDto 리스트 (일자별 장소 리스트)
  */
 @Getter
 @Setter
@@ -18,18 +26,10 @@ import com.example.project.route.domain.Route;
 public class RouteDetailResponseDto {
 
 
-	private Long routeId;
+	private Long routeId;   
     private Long memberId;
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;
-
-    private List<DayItineraryDto> days; // 하루별 일정 리스트
-    
-    public RouteDetailResponseDto(Route route) {
-        this.routeId = route.getId();
-        this.title = route.getTitle();
-        this.startDate = route.getStartDate();
-        this.endDate = route.getEndDate();
-    }
+    private List<DayItineraryDto> days;
 }

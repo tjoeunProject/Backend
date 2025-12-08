@@ -6,10 +6,20 @@ import com.example.project.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.List;
 
 /**
- * /api/review 하위 리뷰 기능 제공
+ * /api/review 하위의 리뷰(여행톡) 기능을 제공하는 컨트롤러.
+ *
+ * 기능:
+ *  - 리뷰 작성
+ *  - 일정별/일차별 리뷰 목록 조회
+ *  - 리뷰 수정
+ *  - 리뷰 삭제
+ *
+ * 회원 정보는 Security(로그인)에서 관리하며
+ * 컨트롤러에서는 Principal을 통해 현재 로그인한 유저를 사용한다.
  */
 @RestController
 @RequiredArgsConstructor
@@ -21,40 +31,48 @@ public class ReviewController {
     /**
      * 리뷰 작성
      * POST /api/review
+     *
+     * 요청 본문에 routeId, dayIndex, content를 담고,
+     * 로그인 정보는 Principal에서 가져온다.
      */
     @PostMapping
-    public Long createReview(@RequestBody ReviewCreateRequestDto dto) {
-        return reviewService.createReview(dto);
+    public Long createReview(@RequestBody ReviewCreateRequestDto dto,
+                             Principal principal) {
+        return reviewService.createReview(dto, principal);
     }
 
     /**
      * 특정 일정 + 특정 일차 리뷰 조회
-     * GET /api/review/{routeId}/{dayIndex}
      */
     @GetMapping("/{routeId}/{dayIndex}")
     public List<ReviewResponseDto> getReviews(
             @PathVariable Long routeId,
             @PathVariable int dayIndex) {
-
         return reviewService.getReviews(routeId, dayIndex);
     }
 
     /**
      * 리뷰 수정
      * PUT /api/review/{reviewId}
+     *
+     * 본인 댓글만 수정 가능하며, Principal을 이용해 작성자 검증을 수행한다.
      */
     @PutMapping("/{reviewId}")
     public void updateReview(@PathVariable Long reviewId,
-                             @RequestBody ReviewCreateRequestDto dto) {
-        reviewService.updateReview(reviewId, dto);
+                             @RequestBody ReviewCreateRequestDto dto,
+                             Principal principal) {
+        reviewService.updateReview(reviewId, dto, principal);
     }
 
     /**
      * 리뷰 삭제
      * DELETE /api/review/{reviewId}
+     *
+     * 본인 댓글만 삭제 가능하다.
      */
     @DeleteMapping("/{reviewId}")
-    public void deleteReview(@PathVariable Long reviewId) {
-        reviewService.deleteReview(reviewId);
+    public void deleteReview(@PathVariable Long reviewId,
+                             Principal principal) {
+        reviewService.deleteReview(reviewId, principal);
     }
 }
