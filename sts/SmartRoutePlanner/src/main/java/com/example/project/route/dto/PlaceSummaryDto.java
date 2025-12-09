@@ -1,7 +1,10 @@
 package com.example.project.route.dto;
 
+import com.example.project.place.dto.PlaceResponseDto;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -10,9 +13,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @AllArgsConstructor
-public class PlaceSummaryDto {
+@NoArgsConstructor
+public class PlaceSummaryDto extends PlaceResponseDto {
 
-    private Long placeId;
-    private String name;
-    private int orderIndex;
+	private int orderIndex;
 }

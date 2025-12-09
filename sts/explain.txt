@@ -1,2 +1,9 @@
 application.properties 
 API 사용으로 인한 ignore 처리하였으므로 sts 를 돌려야할때 요구 바람
+
+지금은 이렇게 사용하지만 나중에 API 키 변수 처리를 위해 
+${DB_PASSWORD} 이런형식으로 바뀔 예정 
+
+이 작업은 Run as -> Run figuration -> environment 에서 설정 가능 하고 
+이후 설정하게 되면 환경설정은 직접 모두에게 할 예정
+현재는  API 키가 노출(application.properties 에 있는 google map 만)작업속도를 위해 납두고 이후 수정 예정
