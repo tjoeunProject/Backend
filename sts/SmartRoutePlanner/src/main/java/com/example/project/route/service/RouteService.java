@@ -65,8 +65,6 @@ public class RouteService {
          // [안쪽 for문]: 해당 날짜의 장소(Place)들을 순회합니다.
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-            	
-            	
             	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
             	
                 RoutePlace rp = new RoutePlace();
