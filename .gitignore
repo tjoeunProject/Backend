@@ -3,10 +3,9 @@ logs/
 **/logs/
 *.log
 *.env
-application.properties
-src/main/resources/application.properties
-sts/SmartRoutePlanner/src/main/resources/application.properties
 python/.env
 
 sts/SmartRoutePlanner/src/main/resources/application.properties
 sts/SmartRoutePlanner/src/main/resources/application.properties
+*.properties
+/sts/SmartRoutePlanner/src/main/resources
