@@ -46,7 +46,7 @@ public class RouteCreateRequestDto {
     @Data
     @NoArgsConstructor
     public static class SimplePlaceDto {
-        private Long placeId;
+        private String placeId;
         private String placeName;
     }
 }
