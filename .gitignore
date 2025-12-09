@@ -4,10 +4,9 @@ logs/
 *.log
 *.env
 application.properties
-<<<<<<< Updated upstream
 src/main/resources/application.properties
-=======
 sts/SmartRoutePlanner/src/main/resources/application.properties
 python/.env
 
->>>>>>> Stashed changes
+sts/SmartRoutePlanner/src/main/resources/application.properties
+sts/SmartRoutePlanner/src/main/resources/application.properties
