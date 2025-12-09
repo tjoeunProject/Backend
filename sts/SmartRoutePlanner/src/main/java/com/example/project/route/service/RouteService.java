@@ -1,9 +1,17 @@
 package com.example.project.route.service;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.example.project.member.domain.TravelUser;
 import com.example.project.member.repository.TravelUserRepository;
 import com.example.project.place.domain.Place;
-import com.example.project.place.repository.PlaceRepository;
+import com.example.project.place.service.PlaceService;
 import com.example.project.route.domain.Route;
 import com.example.project.route.domain.RoutePlace;
 import com.example.project.route.dto.DayItineraryDto;
@@ -15,13 +23,6 @@ import com.example.project.route.repository.RoutePlaceRepository;
 import com.example.project.route.repository.RouteRepository;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * RouteService
@@ -35,7 +36,7 @@ public class RouteService {
     private final RouteRepository routeRepository;
     private final RoutePlaceRepository routePlaceRepository;
     private final TravelUserRepository travelUserRepository;
-    private final PlaceRepository placeRepository;
+    private final PlaceService placeService;
 
     /**
      * 일정 생성
@@ -57,15 +58,17 @@ public class RouteService {
         Route saved = routeRepository.save(route);
 
         int dayIndex = 1;
+     // day 변수: 해당 날짜에 방문할 장소들의 리스트 (List<SimplePlaceDto>)
         for (List<RouteCreateRequestDto.SimplePlaceDto> day : dto.getPlaces()) {
 
             int orderIndex = 1;
+         // [안쪽 for문]: 해당 날짜의 장소(Place)들을 순회합니다.
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-                Place place = placeRepository.findById(sp.getPlaceId())
-                        .orElseThrow(() ->
-                                new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
-
+            	
+            	
+            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+            	
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(saved);
                 rp.setPlace(place);
@@ -158,9 +161,7 @@ public class RouteService {
             int orderIndex = 1;
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-                Place place = placeRepository.findById(sp.getPlaceId())
-                        .orElseThrow(() ->
-                                new IllegalArgumentException("Place not found: " + sp.getPlaceId()));
+            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
 
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(route);
