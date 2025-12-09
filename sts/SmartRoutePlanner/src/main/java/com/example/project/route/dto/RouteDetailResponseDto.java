@@ -31,5 +31,5 @@ public class RouteDetailResponseDto {
     private String title;
     private LocalDate startDate;
     private LocalDate endDate;
-    private List<DayItineraryDto> days;
-}
+    private List<List<PlaceSummaryDto>> places;
+    }

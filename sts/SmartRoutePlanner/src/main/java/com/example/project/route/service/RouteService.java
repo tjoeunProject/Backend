@@ -1,5 +1,7 @@
 package com.example.project.route.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,7 +16,6 @@ import com.example.project.place.domain.Place;
 import com.example.project.place.service.PlaceService;
 import com.example.project.route.domain.Route;
 import com.example.project.route.domain.RoutePlace;
-import com.example.project.route.dto.DayItineraryDto;
 import com.example.project.route.dto.PlaceSummaryDto;
 import com.example.project.route.dto.RouteCreateRequestDto;
 import com.example.project.route.dto.RouteDetailResponseDto;
@@ -84,43 +85,74 @@ public class RouteService {
     }
 
     /**
-     * 일정 상세 조회
+     * 일정 상세 조회 (최종 수정본) // 수정 3번함... 
      */
     public RouteDetailResponseDto getRouteDetail(Long routeId) {
 
+        // 1. Route(일정) 본체 조회
         Route route = routeRepository.findById(routeId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Route not found id=" + routeId));
+                .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
 
-        List<RoutePlace> places =
+        // 2. RoutePlace(연결정보) 조회 
+        // ★ 핵심 1: DB에서 가져올 때 이미 dayIndex, orderIndex 순으로 정렬되어 옴
+        List<RoutePlace> routePlaces =
                 routePlaceRepository.findByRouteIdOrderByDayIndexAscOrderIndexAsc(routeId);
 
-        Map<Integer, List<PlaceSummaryDto>> grouped =
-                places.stream().collect(Collectors.groupingBy(
+        // 3. 그룹화 및 Place 데이터 매핑
+        Map<Integer, List<PlaceSummaryDto>> grouped = routePlaces.stream()
+                .collect(Collectors.groupingBy(
                         RoutePlace::getDayIndex,
                         LinkedHashMap::new,
-                        Collectors.mapping(
-                                rp -> new PlaceSummaryDto(
-                                        rp.getPlace().getId(),
-                                        rp.getPlaceName(),
-                                        rp.getOrderIndex()),
-                                Collectors.toList()
-                        )
+                        Collectors.mapping(rp -> {
+                            // ★ 핵심 2: RoutePlace와 매칭된 Place 객체 데이터를 꺼냄 (JPA가 ID 매칭 처리)
+                            Place p = rp.getPlace(); 
+                            
+                            // Place 정보를 담을 DTO 생성
+                            PlaceSummaryDto dto = new PlaceSummaryDto();
+                            
+                            // [Place 객체 데이터 복사] 
+                            // PlaceResponseDto에 있는 모든 필드를 그대로 옮겨 담습니다.
+                            dto.setId(p.getId());
+                            dto.setGooglePlaceId(p.getGooglePlaceId());
+                            dto.setName(p.getName());
+                            dto.setFormattedAddress(p.getFormattedAddress());
+                            dto.setLat(p.getLat());
+                            dto.setLng(p.getLng());
+                            dto.setRating(p.getRating());
+                            dto.setUserRatingsTotal(p.getUserRatingsTotal());
+                            dto.setTypes(p.getTypes());
+                            dto.setPhotoReferences(p.getPhotoReferences()); // 사진 정보 포함
+                            // ... 필요한 모든 Place 필드 set
+
+                            // [순서 정보 추가]
+                            dto.setOrderIndex(rp.getOrderIndex());
+
+                            return dto;
+                        }, Collectors.toList())
                 ));
 
-        List<DayItineraryDto> days = grouped.entrySet().stream()
-                .map(e -> new DayItineraryDto(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
+        // 4. Map -> 2차원 List 변환 (빈 날짜 처리 포함)
+        List<List<PlaceSummaryDto>> places2d = new ArrayList<>();
+        
+        // 1일차부터 총 일수(totalDays)까지 루프를 돌며 리스트 생성
+        for (int i = 1; i <= route.getTotalDays(); i++) {
+            List<PlaceSummaryDto> dayPlaces = grouped.getOrDefault(i, Collections.emptyList());
+            places2d.add(dayPlaces);
+        }
 
+        // 5. 최종 반환
         return new RouteDetailResponseDto(
                 route.getId(),
                 route.getUser().getId().longValue(),
                 route.getTitle(),
                 route.getStartDate(),
                 route.getEndDate(),
-                days
+                places2d // ★ Place 객체 데이터가 담긴 2차원 리스트
         );
     }
+    
+    
+    
 
     /**
      * 특정 회원의 일정 목록 조회
@@ -136,30 +168,34 @@ public class RouteService {
                 .collect(Collectors.toList());
     }
 
+   
     /**
-     * 일정 수정
+     * 일정 수정 (최종 수정본)
      */
     @Transactional
     public void updateRoute(Long routeId, RouteCreateRequestDto dto) {
 
+        // 1. 기존 일정 조회 및 기본 정보 업데이트
         Route route = routeRepository.findById(routeId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Route not found id=" + routeId));
+                .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
 
         route.setTitle(dto.getTitle());
         route.setStartDate(dto.getStartDate());
         route.setEndDate(dto.getEndDate());
         route.setTotalDays(dto.getPlaces().size());
 
+        // 2. 기존 장소들 모두 삭제 (Delete All)
         routePlaceRepository.deleteByRouteId(routeId);
 
+        // 3. 새 장소 목록 다시 등록 (Insert All) - createRoute와 동일한 로직 적용
         int dayIndex = 1;
         for (List<RouteCreateRequestDto.SimplePlaceDto> day : dto.getPlaces()) {
-
             int orderIndex = 1;
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+                // [수정 포인트] findById가 아니라 savePlaceFromGoogle 사용!
+                // sp.getPlaceId()는 이제 String(Google ID)입니다.
+                Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
 
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(route);
