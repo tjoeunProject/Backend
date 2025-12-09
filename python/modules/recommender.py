@@ -87,3 +87,5 @@ class PlaceRecommender:
             dining_plan[day_key] = day_dining_list
             
         return dining_plan
+
+        

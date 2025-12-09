@@ -1,0 +1,2 @@
+application.properties 
+API 사용으로 인한 ignore 처리하였으므로 sts 를 돌려야할때 요구 바람
