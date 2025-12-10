@@ -123,7 +123,7 @@ public class RouteService {
                             dto.setTypes(p.getTypes());
                             dto.setPhotoReferences(p.getPhotoReferences()); // 사진 정보 포함
                             // ... 필요한 모든 Place 필드 set
-
+                            dto.setHtmlAttributions(p.getHtmlAttributions());
                             // [순서 정보 추가]
                             dto.setOrderIndex(rp.getOrderIndex());
 
