@@ -163,6 +163,10 @@ public class PlaceService {
      * 저장 시 savePlace(dto)를 재사용해 중복 체크 처리
      */
     public Place savePlaceFromGoogle(String placeId) {
+    	if (placeRepository.existsByGooglePlaceId(placeId)) {
+            return placeRepository.findByGooglePlaceId(placeId);
+        }
+    	
         PlaceRequestDto dto = googlePlacesClient.fetchPlaceDetails(placeId);
         return savePlace(dto);
     }

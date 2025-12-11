@@ -19,11 +19,23 @@ import java.util.List;
  *  - places: 2차원 리스트 (일자별 장소 목록)
  *
  * 예시:
- * [
- *   [ {placeId: 1}, {placeId: 2} ],   // 1일차
- *   [ {placeId: 3} ],                 // 2일차
- *   [ {placeId: 4}, {placeId: 5} ]    // 3일차
- * ]
+[
+      {
+        "placeId": "ChIJN1t_tDeuEmsRUsoyG83frY4",
+        "placeName": "구글 본사"
+      },
+      {
+        "placeId": "ChIJd8BlQ2BZWjQR7MVog8S_vS0",
+        "placeName": "블루보틀 커피"
+      }
+    ],
+    [
+      {
+        "placeId": "ChIJKxjxuaNlfjQR3RGugZeQytk",
+        "placeName": "금문교"
+      }
+    ],
+    []
  */
 @Data
 @NoArgsConstructor
@@ -46,7 +58,7 @@ public class RouteCreateRequestDto {
     @Data
     @NoArgsConstructor
     public static class SimplePlaceDto {
-        private Long placeId;
+        private String placeId;
         private String placeName;
     }
 }

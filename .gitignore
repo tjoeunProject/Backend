@@ -1,0 +1,11 @@
+/.metadata/
+logs/
+**/logs/
+*.log
+*.env
+python/.env
+
+sts/SmartRoutePlanner/src/main/resources/application.properties
+sts/SmartRoutePlanner/src/main/resources/application.properties
+*.properties
+/sts/SmartRoutePlanner/src/main/resources
