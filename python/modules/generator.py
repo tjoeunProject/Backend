@@ -1,8 +1,9 @@
 import json
+import math
 import google.generativeai as genai
 from serpapi import GoogleSearch
 
-# 메모리 캐시
+# 메모리 캐시 (중복 검색 방지)
 _RAM_CACHE = {}
 
 class CourseGenerator:
@@ -10,27 +11,26 @@ class CourseGenerator:
         self.gemini_key = gemini_key
         self.serp_key = serp_key
         
-        # 태그 규칙 (동일 유지)
+        # 태그 규칙
         self.TAG_RULES = {
-            "👨‍👩‍👧 부모님과 가기 좋아요": "Minimize walking. Prioritize comfort.",
-            "🧍 혼자 여행하기 좋아요": "Focus on solo-friendly spots.",
+            "👨‍👩‍👧 부모님과 가기 좋아요": "Minimize walking. Prioritize comfort and accessibility.",
+            "🧍 혼자 여행하기 좋아요": "Focus on solo-friendly spots and safety.",
             "👩 친구와 가기 좋아요": "High energy, trendy spots, photo zones.",
-            "👩‍👧 아이와 함께 가기 좋아요": "Kids-friendly, safe environments.",
-            "💏 데이트하기 좋은": "Romantic atmosphere, night views.",
-            "😊 감성적인 / 잔잔한": "Cozy vibes.",
-            "🤫 조용한 / 한적한": "Hidden gems, peaceful.",
-            "📷 인스타 감성 / 사진 맛집": "Visually stunning photo spots.",
-            "🌃 야경이 예쁜": "Night views, observatories.",
-            "🍽️ 맛집 탐방": "Famous local restaurants.",
-            "☕ 카페 투어": "Famous cafes.",
-            "🤸 액티비티": "Active experiences.",
-            "🛍️ 쇼핑하기 좋은": "Shopping districts.",
+            "👩‍👧 아이와 함께 가기 좋아요": "Kids-friendly, safe environments, educational.",
+            "💏 데이트하기 좋은": "Romantic atmosphere, night views, couple-friendly.",
+            "😊 감성적인 / 잔잔한": "Cozy vibes, aesthetic interiors, relaxing.",
+            "🤫 조용한 / 한적한": "Hidden gems, peaceful, less crowded.",
+            "📷 인스타 감성 / 사진 맛집": "Visually stunning photo spots, instagrammable.",
+            "🌃 야경이 예쁜": "Night views, observatories, evening spots.",
+            "🍽️ 맛집 탐방": "Famous local restaurants, waiting lines worthy.",
+            "☕ 카페 투어": "Famous cafes, specialty coffee, deserts.",
+            "🤸 액티비티": "Active experiences, sports, dynamic.",
+            "🛍️ 쇼핑하기 좋은": "Shopping districts, malls, souvenirs.",
         }
 
         if self.gemini_key:
             genai.configure(api_key=self.gemini_key)
             self.model = genai.GenerativeModel('gemini-2.5-flash-lite')
-            # self.model = genai.GenerativeModel('gemini-1.5-flash')
 
     def _build_prompt_context(self, tags):
         instructions = []
@@ -40,84 +40,61 @@ class CourseGenerator:
                     instructions.append(f"- {rule}")
         return "\n".join(instructions) if instructions else "- No specific preferences."
 
-    def generate_places(self, destination, days, tags):
+    def generate_recommendations(self, destination, days, tags):
+        """
+        여행 일정 코스가 아닌, 선택 가능한 '추천 장소 리스트(Pool)'를 반환합니다.
+        Return: List of Place Objects (Flat List)
+        """
         if not self.model or not self.serp_key:
             return []
 
         # ---------------------------------------------------------
-        # 1. [Tight Schedule] 빡빡한 일정 개수 산정
+        # 1. 수량 산정 (배수 적용: 관광지2배, 카페2배, 식당1.5배)
         # ---------------------------------------------------------
-        # 한국인 국룰 코스: 9시 시작 ~ 21시 종료
-        # 오전: 관광2
-        # 점심: 식사1 + 카페1
-        # 오후: 관광3
-        # 저녁: 식사1
-        # 총합: 하루 8곳
-        
-        daily_restaurants = 2
-        daily_cafes = 1
-        daily_spots = 5  # 🔥 기존 3곳에서 5곳으로 대폭 상향
+        base_daily_spots = 5
+        base_daily_restaurants = 2
+        base_daily_cafes = 1
 
+        # 태그에 따른 기본 관광지 수 조정
         tag_set = set(tags)
+        if any(t in tag_set for t in ["👨‍👩‍👧 부모님과 가기 좋아요", "🤫 조용한 / 한적한"]):
+            base_daily_spots = 4
+        elif any(t in tag_set for t in ["👩 친구와 가기 좋아요", "🤸 액티비티"]):
+            base_daily_spots = 6
 
-        # 예외 처리: 부모님/힐링 태그가 있으면 조금 줄임 (그래도 빡빡하게 4곳)
-        if any(t in tag_set for t in ["👨‍👩‍👧 부모님과 가기 좋아요", "🤫 조용한 / 한적한", "😊 감성적인 / 잔잔한"]):
-            daily_spots = 4
-            print("   ⚖️ [Adjust] 힐링/가족 태그 감지 -> 관광지 하루 4곳으로 조정")
-        
-        # 예외 처리: 액티비티/친구 태그는 더 빡세게 (하루 6곳까지 가능)
-        if any(t in tag_set for t in ["👩 친구와 가기 좋아요", "🤸 액티비티"]):
-            daily_spots = 6
-            print("   🔥 [Adjust] 활동/친구 태그 감지 -> 관광지 하루 6곳으로 상향 (강행군)")
+        total_spots = math.ceil((days * base_daily_spots) * 2.0)
+        total_cafes = math.ceil((days * base_daily_cafes) * 2.0)
+        total_restaurants = math.ceil((days * base_daily_restaurants) * 1.5)
 
-        n_restaurants = days * daily_restaurants
-        n_cafes = days * daily_cafes
-        n_spots = days * daily_spots
-        total_count = n_restaurants + n_cafes + n_spots
+        total_count = total_spots + total_cafes + total_restaurants
 
         # ---------------------------------------------------------
-        # 2. Gemini에게 "타이트한 일정" 요청
+        # 2. Gemini에게 카테고리별 추천 요청 (구조적 생성을 위해 프롬프트는 유지)
         # ---------------------------------------------------------
         tag_context = self._build_prompt_context(tags)
         
         prompt = f"""
-        Act as a travel planner for a "Packed & Efficient" trip.
+        Act as a travel curator.
         Destination: {destination}
-        Duration: {days} days
-        User Constraints:
+        User Constraints (Theme):
         {tag_context}
 
         [Task]
-        Select exactly {total_count} places for a tight schedule.
-        The user wants to see AS MUCH AS POSSIBLE.
+        Recommend a pool of {total_count} places divided by category.
         
-        Distribution:
-        - Restaurants: {n_restaurants} (Lunch/Dinner - Must be famous)
-        - Cafes: {n_cafes} (Quick coffee break)
-        - Tourist Spots: {n_spots} (Short & impactful visits)
-
-        [CRITICAL REQUIREMENT - Duration]
-        Since the schedule is tight, estimate efficient visit durations (min):
-        - Restaurant: 60 min (Eat & Go)
-        - Cafe: 30-45 min (Quick rest)
-        - Tourist Spot: 45-60 min (Main highlights only)
-        
-        [Geography Rule]
-        Extremely Important: Group places tightly by location to minimize travel time.
-        (e.g., Morning spots must be within 10-15 mins of each other).
+        Required Counts:
+        1. Tourist Spots: {total_spots} places (Must fit the user theme)
+        2. Cafes: {total_cafes} places (Popular & Aesthetic)
+        3. Restaurants: {total_restaurants} places (Famous local food)
 
         [Output Format]
-        JSON List of Objects.
-        Example:
-        [
-            {{ "name": "Quick Spot A", "duration": 45 }},
-            {{ "name": "Famous Restaurant B", "duration": 60 }}
-        ]
+        Strict JSON object with three keys: "tourist_spots", "cafes", "restaurants".
+        Each item must have: "name", "duration" (minutes), and "best_time" (Morning, Afternoon, Night, or Anytime).
         """
 
-        print(f"🤖 AI 기획 중 (🔥타이트한 모드): {destination} {days}일 (총 {total_count}곳)...")
+        print(f"🤖 AI 추천 리스트 생성 중: {destination} {days}일 (관광{total_spots}, 카페{total_cafes}, 식당{total_restaurants})...")
         
-        ai_data = []
+        ai_data = {}
         try:
             response = self.model.generate_content(prompt)
             clean_text = response.text.replace("```json", "").replace("```", "").strip()
@@ -127,22 +104,37 @@ class CourseGenerator:
             return []
 
         # ---------------------------------------------------------
-        # 3. SerpApi 검증 (이전과 동일)
+        # 3. SerpApi 검증 및 평탄화(Flatten)
         # ---------------------------------------------------------
-        final_places = []
-        print(f"🌍 {len(ai_data)}개 장소 검증 중...")
+        final_flat_list = []
 
-        for item in ai_data:
+        # 3개의 카테고리를 처리하되, 모두 하나의 리스트(final_flat_list)에 담음
+        self._process_category_list(destination, ai_data.get("tourist_spots", []), "tourist_spot", final_flat_list)
+        self._process_category_list(destination, ai_data.get("cafes", []), "cafe", final_flat_list)
+        self._process_category_list(destination, ai_data.get("restaurants", []), "restaurant", final_flat_list)
+
+        return final_flat_list
+
+    def _process_category_list(self, destination, source_list, category_type, target_list):
+        """내부 함수: 카테고리별 리스트를 검증하고 타겟 리스트에 추가 (type 필드 부여)"""
+        print(f"   🔍 {category_type} {len(source_list)}곳 검증 중...")
+        
+        for item in source_list:
             name = item.get("name")
             duration = item.get("duration", 60)
+            best_time = item.get("best_time", "Anytime")
 
+            # 캐시 확인
             cache_key = f"{destination}_{name}"
             if cache_key in _RAM_CACHE:
                 cached_place = _RAM_CACHE[cache_key].copy()
                 cached_place['duration_min'] = int(duration)
-                final_places.append(cached_place)
+                cached_place['best_time'] = best_time
+                cached_place['type'] = category_type # 요청한 카테고리로 덮어쓰기
+                target_list.append(cached_place)
                 continue
 
+            # SerpApi 검색
             try:
                 params = {
                     "engine": "google_maps",
@@ -151,7 +143,6 @@ class CourseGenerator:
                     "api_key": self.serp_key,
                     "hl": "ko", "gl": "kr"
                 }
-                
                 search = GoogleSearch(params)
                 results = search.get_dict()
                 
@@ -165,24 +156,21 @@ class CourseGenerator:
                     gps = place_data.get("gps_coordinates", {})
                     if not gps.get("latitude"): continue
 
+                    # [요청하신 필드만 포함]
                     new_place = {
                         "id": place_data.get("place_id"),
                         "name": place_data.get("title"),
-                        "lat": gps.get("latitude"),
-                        "lng": gps.get("longitude"),
                         "rating": place_data.get("rating", 0.0),
                         "reviews": place_data.get("reviews", 0),
-                        "address": place_data.get("address", ""),
-                        "photos": place_data.get("photos", [])[:1],
-                        "types": list(tags),
-                        "generated": True,
-                        "duration_min": int(duration)
+                        "lat": gps.get("latitude"),
+                        "lng": gps.get("longitude"),
+                        "type": category_type,  # requested category (tourist_spot, cafe, restaurant)
+                        "duration_min": int(duration),
+                        "best_time": best_time
                     }
                     
                     _RAM_CACHE[cache_key] = new_place
-                    final_places.append(new_place)
+                    target_list.append(new_place)
 
             except Exception:
                 continue
-
-        return final_places
