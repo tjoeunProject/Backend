@@ -46,4 +46,6 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
      * types에 type을 포함하고, rating과 userRatingsTotal 기준으로 정렬한다.
      */
     List<Place> findByTypesContainsOrderByRatingDescUserRatingsTotalDesc(String type);
+    
+    
 }
