@@ -8,7 +8,7 @@ from modules.enricher import PlaceEnricher
 from modules.clustering import DaySegmenter
 from modules.optimizer import RouteOptimizer
 from modules.balancer import ScheduleBalancer
-from modules.recommender import PlaceRecommender
+#from modules.recommender import PlaceRecommender
 
 load_dotenv()
 
@@ -23,7 +23,7 @@ class TravelPlannerApp:
         self.segmenter = DaySegmenter()
         self.optimizer = RouteOptimizer()
         self.balancer = ScheduleBalancer()
-        self.recommender = PlaceRecommender(self.serp_key)
+        # self.recommender = PlaceRecommender(self.serp_key)
 
         self.places = []
         self.itinerary = {}
@@ -49,7 +49,7 @@ class TravelPlannerApp:
         self.places = self.segmenter.segment(self.places, n_days=days)
         self.itinerary = self.optimizer.optimize(self.places)
         self.itinerary = self.balancer.balance(self.itinerary, max_daily_min=540)
-        self.dining_data = self.recommender.get_dining_recommendations(self.itinerary)
+        #   self.dining_data = self.recommender.get_dining_recommendations(self.itinerary)
 
         # ---------------------------------------------------------
         # [NEW] 폴더 생성 및 JSON 저장 / 로그 출력
@@ -63,11 +63,11 @@ class TravelPlannerApp:
 
         # 파일 경로 설정
         itinerary_file = os.path.join(output_dir, "result_itinerary.json")
-        dining_file = os.path.join(output_dir, "result_dining.json")
+        #dining_file = os.path.join(output_dir, "result_dining.json")
 
         # 파일 저장
         self.save_to_file(itinerary_file, self.itinerary)
-        self.save_to_file(dining_file, self.dining_data)
+        #self.save_to_file(dining_file, self.dining_data)
 
         # [NEW] 터미널에 JSON 내용 미리보기 (로그 출력)
         print("\n" + "="*60)
@@ -75,10 +75,10 @@ class TravelPlannerApp:
         print("="*60)
         print(json.dumps(self.itinerary, ensure_ascii=False, indent=2))
 
-        print("\n" + "="*60)
-        print(f"👀 [로그] 생성된 맛집 추천 JSON 구조 ({dining_file})")
-        print("="*60)
-        print(json.dumps(self.dining_data, ensure_ascii=False, indent=2))
+        #print("\n" + "="*60)
+        #print(f"👀 [로그] 생성된 맛집 추천 JSON 구조 ({dining_file})")
+        #print("="*60)
+        #print(json.dumps(self.dining_data, ensure_ascii=False, indent=2))
 
         print("\n" + "="*60)
         print("✅ 모든 작업이 완료되었습니다!")
