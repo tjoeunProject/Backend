@@ -4,6 +4,7 @@ logs/
 *.log
 *.env
 python/.env
+*.pyc
 
 sts/SmartRoutePlanner/src/main/resources/application.properties
 sts/SmartRoutePlanner/src/main/resources/application.properties
