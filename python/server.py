@@ -88,7 +88,7 @@ def generate_course(req: GenerateRequest):
             # 3. 맛집 검색 및 끼워넣기 (Lunch & Dinner)
             num_spots = len(route_places)
 
-            
+
             if num_spots > 0:
                 # 점심: 중간 지점 / 저녁: 마지막 지점
                 lunch_anchor = route_places[num_spots // 2] 
