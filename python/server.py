@@ -59,7 +59,7 @@ def generate_course(req: GenerateRequest):
 
     try:
         # [수정3] 리스트(["서울", "부산"])를 문자열("서울, 부산")로 변환하여 전달
-        target_destination_str = ", ".join(req.destinations)
+        target_destination_str = ", ".join(req.destination)
 
         # 1. AI 생성 (맛집 제외, 관광지 위주)
         raw_course = generator.generate_course(req.destination, req.days, req.tags)
