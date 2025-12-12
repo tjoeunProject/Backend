@@ -2,13 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from typing import List
 
 # --- 모듈 import ---
-from modules.enricher import PlaceEnricher
+from modules.enricher import PlaceProcessor
 from modules.clustering import DaySegmenter
 from modules.optimizer import RouteOptimizer
-from modules.balancer import ScheduleBalancer
 from modules.recommender import PlaceRecommender
+
+from modules.generator import CourseGenerator
+
+
 
 load_dotenv()
 
@@ -22,19 +27,103 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 환경변수
+# 환경변수1
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
 GOOGLE_MAPS_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 
 # 모듈 초기화
-enricher = PlaceEnricher(GEMINI_KEY)
+enricher = PlaceProcessor(GEMINI_KEY)
 segmenter = DaySegmenter()
 optimizer = RouteOptimizer()
-balancer = ScheduleBalancer()
 recommender = PlaceRecommender(SERPAPI_KEY, GOOGLE_MAPS_KEY)
 
+# 1. 생성기 (New!)
+generator = CourseGenerator(GEMINI_KEY, SERPAPI_KEY)
 
+# --- 요청 모델 정의 ---
+class GenerateRequest(BaseModel):
+    destinations: List[str]  # [수정됨] 예: ["Jeju", "Seoul"]
+    days: int
+    tags: List[str] = []
+
+# =========================================================
+#  1. [NEW] Generate API (AI 일정 생성)
+#  Input: 목적지, 기간, 태그
+#  Output: 검증된 일차별 장소 리스트 (Day 1, Day 2...)
+# =========================================================
+@app.post("/generate")
+def generate_course(req: GenerateRequest):
+    if not req.destination or req.days < 1:
+        raise HTTPException(status_code=400, detail="Invalid input")
+
+    try:
+        # 1. AI 생성 (맛집 제외, 관광지 위주)
+        raw_course = generator.generate_course(req.destination, req.days, req.tags)
+        
+        if not raw_course:
+             raise HTTPException(status_code=500, detail="Failed to generate")
+
+        final_itinerary = []
+        
+        # 날짜 순서대로 정렬 (Day 1, Day 2...)
+        sorted_keys = sorted(raw_course.keys(), key=lambda x: int(x.split()[1]))
+
+        for day in sorted_keys:
+            day_spots = raw_course[day]
+            
+            # 장소가 없으면 빈 리스트
+            if not day_spots:
+                final_itinerary.append([])
+                continue
+
+            # 2. 동선 최적화 (거리순 정렬)
+            temp_input = {day: {"places": day_spots}}
+            optimized_res = optimizer.optimize(temp_input)
+            
+            # 정렬된 장소 리스트 확보
+            route_places = optimized_res[day]["places"] 
+            
+            # 3. 맛집 검색 및 끼워넣기 (Lunch & Dinner)
+            num_spots = len(route_places)
+            if num_spots > 0:
+                # 점심: 중간 지점 / 저녁: 마지막 지점
+                lunch_anchor = route_places[num_spots // 2] 
+                dinner_anchor = route_places[-1]
+
+                # 태그 반영하여 검색
+                lunch_spot = recommender.search_one_nearby(
+                    lat=lunch_anchor['lat'], 
+                    lng=lunch_anchor['lng'], 
+                    base_keyword="점심 맛집", 
+                    tags=req.tags
+                )
+                
+                dinner_spot = recommender.search_one_nearby(
+                    lat=dinner_anchor['lat'], 
+                    lng=dinner_anchor['lng'], 
+                    base_keyword="저녁 맛집",
+                    tags=req.tags
+                )
+
+                # 리스트에 삽입 (인덱스 밀림 방지를 위해 뒤에서부터 삽입)
+                if dinner_spot:
+                    dinner_spot['best_time'] = 'Dinner'
+                    route_places.append(dinner_spot) # 맨 뒤 추가
+                    
+                if lunch_spot:
+                    lunch_spot['best_time'] = 'Lunch'
+                    route_places.insert((num_spots // 2) + 1, lunch_spot) # 중간 뒤 삽입
+
+            # 최종 완성된 하루 일정 추가
+            final_itinerary.append(route_places)
+
+        # React용 이중 배열 반환
+        return {"optimized_places": final_itinerary}
+
+    except Exception as e:
+        print(f"❌ Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 # ---------------------------------------------------------
 # 1. Optimize API (Routing & Shrink)
 #    - 말씀하신 대로 최적화 파이프라인만 수행하고 끝냅니다.
@@ -48,7 +137,7 @@ def optimize(data: dict):
         return {"error": "No place data received"}
 
     # 1) Enrich (체류시간/추천시간대 - Shrink 기능용 데이터 확보)
-    places = enricher.enrich(places)
+    places = enricher.process(places)
 
     # 2) Segment (일차 분배)
     segmented = segmenter.segment(places, n_days=days)
@@ -56,12 +145,10 @@ def optimize(data: dict):
     # 3) Optimize (경로 최적화 - Routing)
     optimized = optimizer.optimize(segmented)
 
-    # 4) Balance (시간 밸런싱)
-    balanced = balancer.balance(optimized)
 
     # 배열 형태로 변환 (React 포맷)
-    sorted_keys = sorted(balanced.keys(), key=lambda x: int(x.split()[1]))
-    itinerary_list = [balanced[k]["places"] for k in sorted_keys]
+    sorted_keys = sorted(optimized.keys(), key=lambda x: int(x.split()[1]))
+    itinerary_list = [optimized[k]["places"] for k in sorted_keys]
 
     return {"optimized_places": itinerary_list}
 

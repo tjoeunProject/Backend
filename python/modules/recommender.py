@@ -7,6 +7,18 @@ class PlaceRecommender:
         self.api_key = api_key
         self.maps_key = maps_key
         
+        # [NEW] 1. 태그 -> 맛집 검색어 매핑 규칙 추가
+        self.DINING_KEYWORDS = {
+            "부모님": "가족 식사 한정식 깔끔한",
+            "혼자": "혼밥 바테이블",
+            "친구": "인스타 핫플",
+            "아이": "키즈존 유아의자",
+            "데이트": "분위기 좋은 오마카세",
+            "감성": "인테리어 예쁜",
+            "조용한": "룸식당 조용한",
+            "맛집": "현지인 맛집",
+            "가성비": "가성비 저렴한"
+        }
         if not self.api_key:
             print("⚠️ SerpAPI 키가 없습니다. 맛집 검색 기능이 비활성화됩니다.")
         
@@ -16,6 +28,75 @@ class PlaceRecommender:
                 self.gmaps = googlemaps.Client(key=self.maps_key)
             except Exception as e:
                 print(f"⚠️ Google Maps Client 초기화 실패: {e}")
+
+    # [NEW] 2. 태그 분석 헬퍼 함수 추가
+    def _get_keyword_from_tags(self, tags, base_keyword="맛집"):
+        if not tags:
+            return base_keyword
+        
+        adjectives = []
+        for tag in tags:
+            for key, search_word in self.DINING_KEYWORDS.items():
+                if key in tag:
+                    adjectives.append(search_word)
+                    break 
+        
+        if adjectives:
+            prefix = " ".join(adjectives[:2])
+            return f"{prefix} {base_keyword}"
+        return base_keyword
+
+    # [NEW] 3. 좌표 주변 단일 식당 검색 함수 추가
+    def search_one_nearby(self, lat, lng, base_keyword="맛집", tags=[]):
+        """
+        좌표 주변의 식당 1곳 추천 (태그 반영)
+        """
+        final_query = self._get_keyword_from_tags(tags, base_keyword)
+        
+        try:
+            params = {
+                "engine": "google_maps",
+                "q": final_query,
+                "ll": f"@{lat},{lng},15z",
+                "type": "search",
+                "api_key": self.serp_api_key,
+                "hl": "ko", "gl": "kr"
+            }
+            
+            search = GoogleSearch(params)
+            results = search.get_dict()
+            
+            place_data = None
+            if "local_results" in results and results["local_results"]:
+                place_data = results["local_results"][0]
+            elif "place_results" in results:
+                place_data = results["place_results"]
+                
+            if place_data:
+                gps = place_data.get("gps_coordinates", {})
+                return {
+                    "name": place_data.get("title"),
+                    "lat": gps.get("latitude"),
+                    "lng": gps.get("longitude"),
+                    "rating": place_data.get("rating"),
+                    "address": place_data.get("address"),
+                    "thumbnail": place_data.get("thumbnail"),
+                    "type": "restaurant" 
+                }
+        except Exception:
+            return None
+        return None
+
+
+
+
+
+
+
+
+
+
+
 
     def get_dining_recommendations(self, itinerary):
         if not self.api_key or not itinerary:
@@ -123,7 +204,7 @@ class PlaceRecommender:
                                 "lat": gps.get("latitude", 0.0),
                                 "lng": gps.get("longitude", 0.0),
                                 
-                                "thumbnail": pick.get("thumbnail"),
+                                "photoUrl": pick.get("thumbnail"),
                             }
 
                             # Photo Reference
