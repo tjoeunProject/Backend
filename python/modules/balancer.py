@@ -1,5 +1,6 @@
 from geopy.distance import geodesic
 
+# 안씀
 class ScheduleBalancer:
     def balance(self, itinerary, max_daily_min=540):
         """
@@ -7,7 +8,8 @@ class ScheduleBalancer:
         * 수정: 첫날과 마지막 날을 위해 날짜별 한계치를 다르게 적용
         """
         print("⚖️ 일정 시간 밸런싱 중... (첫날/마지막날 여유 있게)")
-        
+
+
         # Day 1, Day 2... 순서대로 정렬
         sorted_keys = sorted(itinerary.keys(), key=lambda x: int(x.split()[1]))
         total_days = len(sorted_keys)
