@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
 from typing import List
-
+from fastapi import FastAPI, HTTPException
 # --- 모듈 import ---
 from modules.enricher import PlaceProcessor
 from modules.clustering import DaySegmenter
@@ -43,7 +43,7 @@ generator = CourseGenerator(GEMINI_KEY, SERPAPI_KEY)
 
 # --- 요청 모델 정의 ---
 class GenerateRequest(BaseModel):
-    destinations: List[str]  # [수정됨] 예: ["Jeju", "Seoul"]
+    destination: List[str]  # [수정됨] 예: ["Jeju", "Seoul"]
     days: int
     tags: List[str] = []
 
@@ -58,6 +58,9 @@ def generate_course(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="Invalid input")
 
     try:
+        # [수정3] 리스트(["서울", "부산"])를 문자열("서울, 부산")로 변환하여 전달
+        target_destination_str = ", ".join(req.destinations)
+
         # 1. AI 생성 (맛집 제외, 관광지 위주)
         raw_course = generator.generate_course(req.destination, req.days, req.tags)
         

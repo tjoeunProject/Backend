@@ -9,15 +9,19 @@ class PlaceRecommender:
         
         # [NEW] 1. 태그 -> 맛집 검색어 매핑 규칙 추가
         self.DINING_KEYWORDS = {
-            "부모님": "가족 식사 한정식 깔끔한",
-            "혼자": "혼밥 바테이블",
-            "친구": "인스타 핫플",
-            "아이": "키즈존 유아의자",
-            "데이트": "분위기 좋은 오마카세",
-            "감성": "인테리어 예쁜",
-            "조용한": "룸식당 조용한",
-            "맛집": "현지인 맛집",
-            "가성비": "가성비 저렴한"
+            "👨‍👩‍👧 부모님과 가기 좋아요": "Minimize walking. Prioritize comfort and accessibility.",
+            "🧍 혼자 여행하기 좋아요": "Focus on solo-friendly spots and bar-seating restaurants.",
+            "👩 친구와 가기 좋아요": "High energy, trendy spots, photo zones.",
+            "👩‍👧 아이와 함께 가기 좋아요": "Kids-friendly, safe environments, parks.",
+            "💏 데이트하기 좋은": "Romantic atmosphere, night views, couple-friendly.",
+            "😊 감성적인 / 잔잔한": "Cozy vibes, aesthetic interiors, relaxing.",
+            "🤫 조용한 / 한적한": "Hidden gems, peaceful, less crowded.",
+            "📷 인스타 감성 / 사진 맛집": "Visually stunning photo spots, instagrammable decor.",
+            "🌃 야경이 예쁜": "Night views, observatories, evening spots.",
+            "🍽️ 맛집 탐방": "Famous local restaurants, waiting lines worthy.",
+            "☕ 카페 투어": "Famous cafes, specialty coffee, deserts.",
+            "🤸 액티비티": "Active experiences, sports, outdoor activities.",
+            "🛍️ 쇼핑하기 좋은": "Shopping districts, malls, souvenirs.",
         }
         if not self.api_key:
             print("⚠️ SerpAPI 키가 없습니다. 맛집 검색 기능이 비활성화됩니다.")
