@@ -44,6 +44,9 @@ class CourseGenerator:
         if not self.model or not self.serp_key:
             return {}
 
+        # [수정] 리스트(["제주", "서울"])를 문자열("제주, 서울")로 변환 (프롬프트용)
+        dest_str = ", ".join(destination) if isinstance(destination, list) else destination
+
         # 태그 컨텍스트 생성
         tag_instructions = []
         for tag in tags:
