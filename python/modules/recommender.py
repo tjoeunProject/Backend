@@ -1,180 +1,104 @@
-# import os
-# from serpapi import GoogleSearch
-
-# class PlaceRecommender:
-#     def __init__(self, api_key):
-#         self.api_key = api_key
-#         if not self.api_key:
-#             print("⚠️ SerpAPI 키가 없습니다. 맛집 검색 기능이 비활성화됩니다.")
-
-#     def get_dining_recommendations(self, itinerary):
-#         """
-#         여행 일정(itinerary)을 참고하여 독립적인 맛집 추천 데이터를 생성함.
-#         Return: { "Day 1": [ { "near_by": "장소명", "restaurants": [식당1, 식당2] } ... ] }
-#         """
-#         if not self.api_key or not itinerary:
-#             return {}
-
-#         print("🍽️ 동선 주변 맛집 검색 중 (SerpAPI)...")
-#         dining_plan = {} 
-        
-#         for day_key, data in itinerary.items():
-#             places = data['places']
-#             day_dining_list = []
-            
-#             # 비용 절약을 위해 홀수 번째 장소에서만 검색 (1, 3, 5...)
-#             target_places = [p for i, p in enumerate(places) if i % 2 != 0]
-#             if not target_places and places:
-#                 target_places = [places[0]]
-
-#             for place in target_places:
-#                 try:
-#                     query = f"{place['name']} 근처 맛집"
-#                     params = {
-#                         "engine": "google_maps",
-#                         "q": query,
-#                         "type": "search",
-#                         "ll": f"@{place['lat']},{place['lng']},15z",
-#                         "api_key": self.api_key,
-#                         "hl": "ko", "gl": "kr"
-#                     }
-                    
-#                     search = GoogleSearch(params)
-#                     results = search.get_dict()
-#                     local_results = results.get("local_results", [])
-                    
-#                     if local_results:
-#                         valid = [r for r in local_results if r.get('rating') and r.get('reviews')]
-#                         filtered = [r for r in valid if r.get('reviews', 0) >= 10]
-#                         if not filtered: filtered = valid
-                        
-#                         sorted_res = sorted(
-#                             filtered, 
-#                             key=lambda x: (x.get('rating', 0), x.get('reviews', 0)), 
-#                             reverse=True
-#                         )
-
-#                         top_picks = sorted_res[:2]
-                        
-#                         current_recommendation = {
-#                             "near_by": place['name'],
-#                             "restaurants": []
-#                         }
-
-#                         for pick in top_picks:
-#                             gps = pick.get("gps_coordinates", {})
-                            
-#                             current_recommendation["restaurants"].append({
-#                                 "id": pick.get("place_id"),
-#                                 "name": pick.get("title"),
-#                                 "rating": pick.get("rating"),
-#                                 "reviews": pick.get("reviews"),
-#                                 "lat": gps.get("latitude", 0.0),
-#                                 "lng": gps.get("longitude", 0.0),
-#                                 "type": pick.get("type", "restaurant"),
-#                                 "address": pick.get("address"),
-#                                 "price": pick.get("price"),
-                                
-#                                 # [NEW] 이미지 URL 추가 (SerpAPI thumbnail)
-#                                 "image_url": pick.get("thumbnail") 
-#                             })
-                        
-#                         if top_picks:
-#                             day_dining_list.append(current_recommendation)
-#                             print(f"   ⭐ [{place['name']}] 주변 맛집 {len(top_picks)}곳 발견")
-
-#                 except Exception as e:
-#                     print(f"   ❌ 검색 오류 ({place['name']}): {e}")
-
-#             dining_plan[day_key] = day_dining_list
-            
-#         return dining_plan
-
-
-#####
 import os
 from serpapi import GoogleSearch
+import googlemaps
 
 class PlaceRecommender:
-    def __init__(self, api_key):
+    def __init__(self, api_key, maps_key=None):
         self.api_key = api_key
+        self.maps_key = maps_key
+        
         if not self.api_key:
             print("⚠️ SerpAPI 키가 없습니다. 맛집 검색 기능이 비활성화됩니다.")
+        
+        self.gmaps = None
+        if self.maps_key:
+            try:
+                self.gmaps = googlemaps.Client(key=self.maps_key)
+            except Exception as e:
+                print(f"⚠️ Google Maps Client 초기화 실패: {e}")
 
     def get_dining_recommendations(self, itinerary):
         if not self.api_key or not itinerary:
-            return {}
+            return []
 
-        print("🍽️ 동선 주변 맛집 검색 및 상세 정보 수집 중 (SerpApi)...")
-        dining_plan = {} 
+        print("🍽️ [점심/저녁] 동선 기반 맛집 검색 중...")
+        
+        flat_dining_list = []
         
         for day_key, data in itinerary.items():
             places = data['places']
-            day_dining_list = []
-            
-            # 검색 비용 절약: 홀수 번째 장소에서만 검색 (1, 3, 5...)
-            target_places = [p for i, p in enumerate(places) if i % 2 != 0]
-            if not target_places and places:
-                target_places = [places[0]]
+            if not places: continue
 
-            for place in target_places:
+            # --- 타겟 장소 선정 ---
+            target_places_with_label = []
+            count = len(places)
+            if count == 0: continue
+            
+            lunch_idx = 1 if count >= 3 else 0
+            target_places_with_label.append({"place": places[lunch_idx], "meal_type": "점심 추천"})
+
+            if count >= 2:
+                target_places_with_label.append({"place": places[-1], "meal_type": "저녁 추천"})
+
+            for item in target_places_with_label:
+                place = item["place"]
+                meal_label = item["meal_type"]
+                
+                # 1차 검색어
+                query = f"{place['name']} 근처 맛집"
+                
+                lat = place.get('lat')
+                lng = place.get('lng')
+                if not lat or not lng: continue
+
+                params = {
+                    "engine": "google_maps",
+                    "q": query,
+                    "type": "search",
+                    "ll": f"@{lat},{lng},15z",
+                    "api_key": self.api_key,
+                    "hl": "ko", "gl": "kr"
+                }
+
                 try:
-                    # [1차 검색] 근처 맛집 목록 조회 (1 크레딧 소모)
-                    query = f"{place['name']} 근처 맛집"
-                    params = {
-                        "engine": "google_maps",
-                        "q": query,
-                        "type": "search",
-                        "ll": f"@{place['lat']},{place['lng']},15z",
-                        "api_key": self.api_key,
-                        "hl": "ko", "gl": "kr"
-                    }
-                    
                     search = GoogleSearch(params)
                     results = search.get_dict()
                     local_results = results.get("local_results", [])
-                    
+
+                    # Fallback (2차 검색)
+                    if not local_results:
+                        print(f"   ⚠️ '{query}' 결과 없음. '맛집' 키워드로 재검색...")
+                        params['q'] = "맛집"
+                        search_fallback = GoogleSearch(params)
+                        results_fallback = search_fallback.get_dict()
+                        local_results = results_fallback.get("local_results", [])
+
                     if local_results:
-                        valid = [r for r in local_results if r.get('rating') and r.get('reviews')]
-                        filtered = [r for r in valid if r.get('reviews', 0) >= 10]
-                        if not filtered: filtered = valid
-                        
-                        sorted_res = sorted(
-                            filtered, 
-                            key=lambda x: (x.get('rating', 0), x.get('reviews', 0)), 
-                            reverse=True
-                        )
+                        # 필터링
+                        valid = []
+                        for r in local_results:
+                            raw_reviews = r.get('reviews', 0)
+                            if isinstance(raw_reviews, str):
+                                try:
+                                    raw_reviews = int(raw_reviews.replace('(', '').replace(')', '').replace(',', ''))
+                                except: raw_reviews = 0
+                            
+                            if r.get('rating') and raw_reviews >= 5: # 리뷰 5개 이상
+                                r['parsed_reviews'] = raw_reviews
+                                valid.append(r)
 
-                        top_picks = sorted_res[:2] # 상위 2개 식당 선택
+                        sorted_res = sorted(valid, key=lambda x: (x.get('rating', 0), x.get('parsed_reviews', 0)), reverse=True)
+                        top_picks = sorted_res[:1] 
                         
-                        current_recommendation = {
-                            "near_by": place['name'],
-                            "restaurants": []
-                        }
-
                         for pick in top_picks:
                             gps = pick.get("gps_coordinates", {})
                             real_place_id = pick.get("place_id")
                             
-                            restaurant_info = {
-                                "id": real_place_id, 
-                                "name": pick.get("title"),
-                                "rating": pick.get("rating"),
-                                "reviews_count": pick.get("reviews"),
-                                "lat": gps.get("latitude", 0.0),
-                                "lng": gps.get("longitude", 0.0),
-                                "type": pick.get("type", "restaurant"),
-                                "address": pick.get("address"),
-                                "price": pick.get("price"),
-                                "thumbnail": pick.get("thumbnail"),
-                            }
-
-                            # [2차/3차 검색] 상세 정보 조회 (각 1 크레딧 소모)
-                            details = {}
+                            # details 초기화
+                            details = {} 
                             if real_place_id:
                                 details = self._fetch_details_internal(place_id=real_place_id)
-                            
-                            # (A) 영업시간 처리
+
                             final_hours = details.get("opening_hours", [])
                             if not final_hours:
                                 raw_hours = pick.get("operating_hours")
@@ -183,7 +107,37 @@ class PlaceRecommender:
                                 elif isinstance(raw_hours, str):
                                     final_hours = [raw_hours]
 
-                            # (B) 사진 처리
+                            restaurant_info = {
+                                "place_id": real_place_id, 
+                                "name": pick.get("title"),
+                                "category": pick.get("type", "음식점"),
+                                "meal_type": meal_label,
+                                "formatted_address": pick.get("address"), 
+                                "rating": pick.get("rating"),
+                                "reviews": pick.get("parsed_reviews"),
+                                "formatted_phone_number": details.get("phone_number") or pick.get("phone"),
+                                "website": details.get("website") or pick.get("website"),
+                                "opening_hours": final_hours,
+                                
+                                # 🔥 [수정] geometry 구조 제거하고 바로 lat, lng 할당!
+                                "lat": gps.get("latitude", 0.0),
+                                "lng": gps.get("longitude", 0.0),
+                                
+                                "thumbnail": pick.get("thumbnail"),
+                            }
+
+                            # Photo Reference
+                            photo_ref = None
+                            if self.gmaps and real_place_id:
+                                try:
+                                    place_details = self.gmaps.place(place_id=real_place_id, fields=['photo'])
+                                    photos = place_details.get('result', {}).get('photos', [])
+                                    if photos:
+                                        photo_ref = photos[0].get('photo_reference')
+                                except Exception: pass
+                            restaurant_info['photo_reference'] = photo_ref
+
+                            # Detail Photos
                             final_photos = details.get("detail_photos", [])
                             if not final_photos:
                                 if "photos" in pick and isinstance(pick["photos"], list):
@@ -192,31 +146,25 @@ class PlaceRecommender:
                                         if img: final_photos.append(img)
                                 if not final_photos and pick.get("thumbnail"):
                                     final_photos = [pick.get("thumbnail")]
+                            
+                            restaurant_info.update({"detail_photos": final_photos})
+                            flat_dining_list.append(restaurant_info)
 
-                            # 데이터 병합 (facilities, top_reviews 제외됨)
-                            merged_details = {
-                                "opening_hours": final_hours,
-                                "detail_photos": final_photos,
-                                "website": details.get("website") or pick.get("website"),
-                                "phone_number": details.get("phone_number") or pick.get("phone")
-                            }
-
-                            restaurant_info.update(merged_details)
-                            current_recommendation["restaurants"].append(restaurant_info)
-                        
                         if top_picks:
-                            day_dining_list.append(current_recommendation)
-                            print(f"   ⭐ [{place['name']}] 주변 맛집 {len(top_picks)}곳 처리 완료")
+                            print(f"   ⭐ [{day_key} {meal_label}] '{place['name']}' 근처 -> '{top_picks[0].get('title')}' 선정")
+                        else:
+                            print(f"   💨 [{day_key} {meal_label}] 검색 결과 필터링됨 (리뷰 부족)")
+
+                    else:
+                        print(f"   ❌ [{day_key} {meal_label}] '{place['name']}' 근처 맛집 검색 실패")
 
                 except Exception as e:
-                    print(f"   ❌ 검색 오류 ({place['name']}): {e}")
-
-            dining_plan[day_key] = day_dining_list
+                    print(f"   🚨 검색 시스템 오류 ({place['name']}): {e}")
             
-        return dining_plan
+        return flat_dining_list
 
     def _fetch_details_internal(self, place_id):
-        """Place ID를 이용해 상세 정보를 긁어옵니다."""
+        # (기존 코드 유지)
         try:
             params = {
                 "engine": "google_maps",
@@ -225,33 +173,20 @@ class PlaceRecommender:
                 "api_key": self.api_key,
                 "hl": "ko", "gl": "kr"
             }
-            
             search = GoogleSearch(params)
-            full_response = search.get_dict()
-            res = full_response.get("place_results")
+            res = search.get_dict().get("place_results")
             
-            if not res and "local_results" in full_response:
-                if full_response["local_results"]:
-                    res = full_response["local_results"][0]
-            
-            if not res:
-                return {}
+            if not res: return {}
 
-            # 1. 영업시간
             hours = res.get("operating_hours", {}).get("formatted_schedule", [])
             
-            # 2. 사진 URL
             photos_list = []
             raw_photos = res.get("photos")
-            if not isinstance(raw_photos, list):
-                raw_photos = res.get("images")
-
+            if not isinstance(raw_photos, list): raw_photos = res.get("images")
             if isinstance(raw_photos, list):
                 for p in raw_photos[:5]:
                     img = p.get("image") or p.get("thumbnail")
                     if img: photos_list.append(img)
-
-            # (facilities, reviews 로직은 삭제함)
 
             return {
                 "opening_hours": hours,

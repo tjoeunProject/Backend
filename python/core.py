@@ -18,8 +18,10 @@ class TravelPlannerApp:
         self.gemini_key = os.getenv("GEMINI_API_KEY")
         self.serp_key = os.getenv("SERPAPI_KEY")
 
+        # [추가] Google Maps 키 로드
+        self.maps_key = os.getenv("GOOGLE_MAPS_API_KEY")
+
         # 모듈 초기화
-        self.generator = CourseGenerator(self.gemini_key, self.serp_key) # [추가됨]
         self.enricher = PlaceEnricher(self.gemini_key)
         self.segmenter = DaySegmenter()
         self.optimizer = RouteOptimizer()
@@ -31,7 +33,7 @@ class TravelPlannerApp:
         self.dining_data = {}
 
     # ---------------------------------------------------------
-    # [API 모드] Spring Boot 연동용 (수동 생성 )
+    # [API 모드] Spring Boot 연동용
     # ---------------------------------------------------------
     def run_api(self, places_data, days):
         """
@@ -54,24 +56,6 @@ class TravelPlannerApp:
             "itinerary": self.itinerary,
             "dining": self.dining_data
         }
-
-
-    # ---------------------------------------------------------
-    # [Auto 모드] AI 자동 생성 (신규)
-    # ---------------------------------------------------------
-    def run_auto_plan(self, destination, days, tags):
-        """신규: 여행지/일수/태그만 주면 장소 발굴부터 최적화까지"""
-        print(f"\n🚀 '{destination}' {days}일 자동 생성을 시작합니다. (태그: {tags})")
-        
-        # 1. AI가 장소 발굴 (Generator)
-        raw_places = self.generator.generate_places(destination, days, tags)
-        
-        if not raw_places:
-            return {"error": "장소를 찾지 못했습니다. API 키를 확인해주세요."}
-
-        # 2. 발굴된 장소로 기존 최적화 파이프라인 태우기
-        return self.run_api(raw_places, days)
-
 
     # ---------------------------------------------------------
     # [CLI 모드] 로컬 테스트용
@@ -118,7 +102,6 @@ class TravelPlannerApp:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"❌ 파일 저장 실패 ({filepath}): {e}")
-
 
 if __name__ == "__main__":
     app = TravelPlannerApp("places.json")

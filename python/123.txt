@@ -1,2 +1,8 @@
 google.generativeai
 sklearn
+
+
+
+pip install python-dotenv googlemaps
+
+
