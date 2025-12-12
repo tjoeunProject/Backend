@@ -46,7 +46,7 @@ class PlaceProcessor:
                 "lat": gps.get("latitude") or raw.get("lat"),
                 "lng": gps.get("longitude") or raw.get("lng"),
                 "type": raw.get("category", "tourist_spot"), # 기본값 설정
-                
+                "photoUrl":raw.get("photoUrl"),
                 # B단계에서 채울 필드 초기화
                 "duration_min": 60,
                 "best_time": "Anytime"

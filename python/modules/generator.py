@@ -169,7 +169,7 @@ class CourseGenerator:
                     "type": place_type,
                     "duration_min": int(duration),
                     "best_time": best_time,
-                    "photoUrl": pick.get("thumbnail")
+                    "photoUrl": thumbnail
 
                 }
                 
