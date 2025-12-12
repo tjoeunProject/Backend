@@ -12,7 +12,7 @@ from modules.optimizer import RouteOptimizer
 from modules.recommender import PlaceRecommender
 
 from modules.generator import CourseGenerator
-
+import re
 
 
 load_dotenv()
@@ -58,8 +58,6 @@ def generate_course(req: GenerateRequest):
         raise HTTPException(status_code=400, detail="Invalid input")
 
     try:
-        # [수정3] 리스트(["서울", "부산"])를 문자열("서울, 부산")로 변환하여 전달
-        target_destination_str = ", ".join(req.destination)
 
         # 1. AI 생성 (맛집 제외, 관광지 위주)
         raw_course = generator.generate_course(req.destination, req.days, req.tags)
@@ -89,6 +87,8 @@ def generate_course(req: GenerateRequest):
             
             # 3. 맛집 검색 및 끼워넣기 (Lunch & Dinner)
             num_spots = len(route_places)
+
+            
             if num_spots > 0:
                 # 점심: 중간 지점 / 저녁: 마지막 지점
                 lunch_anchor = route_places[num_spots // 2] 
