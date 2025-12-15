@@ -1,10 +1,22 @@
 package com.example.project.place.domain;
 
-import jakarta.persistence.*;
+import java.util.List;
+
+import com.example.project.route.domain.Route;
+
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Entity
 @Getter
@@ -45,4 +57,8 @@ public class Place {
 
     private int photoWidth;
     private int photoHeight;
+    
+    @ManyToOne(fetch = FetchType.LAZY) // 성능을 위해 LAZY 권장
+    @JoinColumn(name = "route_id")     // 외래키 컬럼명 지정
+    private Route route;               // 필드명이 mappedBy="route"와 일치해야 함
 }

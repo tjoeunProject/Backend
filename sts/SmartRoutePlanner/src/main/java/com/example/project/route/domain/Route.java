@@ -45,6 +45,6 @@ public class Route {
 
     private int totalDays;
 
-    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RoutePlace> routePlaces = new ArrayList<>();
+    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL)
+    private List<Place> routePlaces = new ArrayList<>();
 }

@@ -30,7 +30,7 @@ public class Review {
 
     private int dayIndex;
 
-    @Column(length = 4000)
+    @Lob
     private String content;
 
     /** 작성 시간 */
