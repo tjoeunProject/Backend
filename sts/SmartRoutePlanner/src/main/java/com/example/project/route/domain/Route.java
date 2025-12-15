@@ -1,15 +1,24 @@
 package com.example.project.route.domain;
 
-import com.example.project.member.domain.TravelUser;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-// 1. TravelUser 임포트 필수! (패키지 경로는 본인 프로젝트에 맞게 확인해주세요)
-import com.example.project.member.domain.TravelUser; 
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.example.project.member.domain.TravelUser;
+import com.example.project.place.domain.Place;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "route")
@@ -36,6 +45,6 @@ public class Route {
 
     private int totalDays;
 
-    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RoutePlace> routePlaces = new ArrayList<>();
+    @OneToMany(mappedBy = "route", cascade = CascadeType.ALL)
+    private List<Place> routePlaces = new ArrayList<>();
 }
