@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 
 # --- 모듈 import ---
-from modules.enricher import PlaceEnricher
+from modules.enricher import PlaceProcessor   # ✅ 변경
 from modules.clustering import DaySegmenter
 from modules.optimizer import RouteOptimizer
 from modules.balancer import ScheduleBalancer
@@ -26,7 +26,7 @@ app.add_middleware(
 GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 
 # 공용 모듈 초기화 (API 전체에서 재사용)
-enricher = PlaceEnricher(GEMINI_KEY)
+processor = PlaceProcessor(GEMINI_KEY)   # ✅ 변경
 segmenter = DaySegmenter()
 optimizer = RouteOptimizer()
 balancer = ScheduleBalancer()
@@ -36,7 +36,7 @@ balancer = ScheduleBalancer()
 def optimize(data: dict):
     """
     React가 보내주는 places, days 데이터를 기반으로
-    main.py와 동일한 파이프라인을 FastAPI에서 수행한다.
+    AI Enrich → 날짜 분할 → 경로 최적화 → 일정 밸런싱 파이프라인 실행
     """
 
     places = data.get("places")
@@ -46,9 +46,9 @@ def optimize(data: dict):
         return {"error": "No place data received"}
 
     # -----------------------------
-    # 1) Gemini Enricher — 체류시간/추천시간대 생성
+    # 1) Gemini Processor — 체류시간/추천시간대 생성
     # -----------------------------
-    places = enricher.enrich(places)
+    places = processor.process(places)   # ✅ enrich → process
 
     # -----------------------------
     # 2) Day Segmenter — 날짜별 분할
@@ -66,7 +66,7 @@ def optimize(data: dict):
     balanced = balancer.balance(optimized)
 
     # -----------------------------
-    # 5) React에서는 배열 인덱스로 접근하므로 배열 형태 변환
+    # 5) React에서 쓰기 쉬운 배열 형태로 변환
     # -----------------------------
     result = [v["places"] for v in balanced.values()]
 
