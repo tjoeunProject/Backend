@@ -10,7 +10,7 @@ class PlaceProcessor:
             try:
                 genai.configure(api_key=self.api_key)
                 # 속도와 비용 효율을 위해 Flash 모델 사용
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                self.model = genai.GenerativeModel('gemini-2.5-flash-lite') 
             except Exception as e:
                 print(f"⚠️ Gemini 초기화 실패: {e}")
 
@@ -46,6 +46,8 @@ class PlaceProcessor:
                 "reviews": int(raw.get("reviews", 0)),
                 "lat": gps.get("latitude") or raw.get("lat"),
                 "lng": gps.get("longitude") or raw.get("lng"),
+                "vicinity": raw.get("vicinity"),
+
                 "type": raw.get("category", "tourist_spot"), # 기본값 설정
                 "photoUrl":raw.get("photoUrl"),
                 # B단계에서 채울 필드 초기화
