@@ -26,4 +26,6 @@ public class PlaceRequestDto {
 
     private int photoWidth;
     private int photoHeight;
+    private long routeId;
+
 }

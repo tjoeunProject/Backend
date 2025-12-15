@@ -35,4 +35,6 @@ public class PlaceResponseDto {
 
     private int photoWidth;
     private int photoHeight;
+    private long routeId;
+    
 }
