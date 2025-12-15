@@ -17,10 +17,10 @@ import java.util.List;
  *
  * 기능:
  *  - 일정 생성 POST /api/route
- *  - 상세 조회 GET /api/route/{id}
- *  - 특정 회원의 일정 목록 조회 GET /api/route/member/{id}
- *  - 일정 수정 PUT /api/route/{id}
- *  - 일정 삭제 DELETE /api/route/{id}
+ *  - 상세 조회 GET /api/route/{routeId}
+ *  - 특정 회원의 일정 목록 조회 GET /api/route/member/{memberId}
+ *  - 일정 수정 PUT /api/route/{routeId}
+ *  - 일정 삭제 DELETE /api/route/{routeId}
  */
 @RestController
 @RequiredArgsConstructor
@@ -37,26 +37,34 @@ public class RouteController {
 
     /** 일정 상세 조회 */
     @GetMapping("/{routeId}")
-    public RouteDetailResponseDto getRouteDetail(@PathVariable Long routeId) {
+    public RouteDetailResponseDto getRouteDetail(
+            @PathVariable("routeId") Long routeId
+    ) {
         return routeService.getRouteDetail(routeId);
     }
 
     /** 특정 회원의 일정 목록 조회 */
     @GetMapping("/member/{memberId}")
-    public List<RouteListItemDto> getRoutesByMember(@PathVariable Long memberId) {
+    public List<RouteListItemDto> getRoutesByMember(
+            @PathVariable("memberId") Long memberId
+    ) {
         return routeService.getRoutesByMember(memberId);
     }
 
     /** 일정 수정 */
     @PutMapping("/{routeId}")
-    public void updateRoute(@PathVariable Long routeId,
-                            @RequestBody RouteCreateRequestDto dto) {
+    public void updateRoute(
+            @PathVariable("routeId") Long routeId,
+            @RequestBody RouteCreateRequestDto dto
+    ) {
         routeService.updateRoute(routeId, dto);
     }
 
     /** 일정 삭제 */
     @DeleteMapping("/{routeId}")
-    public void deleteRoute(@PathVariable Long routeId) {
+    public void deleteRoute(
+            @PathVariable("routeId") Long routeId
+    ) {
         routeService.deleteRoute(routeId);
     }
 }

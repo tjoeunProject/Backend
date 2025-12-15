@@ -1,3 +1,5 @@
+# 장소 좌표(lat, lng) 기반 KMeans 군집화 → n_days개 일정으로 분배.
+
 from sklearn.cluster import KMeans
 import math
 
