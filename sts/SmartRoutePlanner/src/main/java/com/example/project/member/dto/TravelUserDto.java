@@ -11,7 +11,7 @@ public class TravelUserDto {
 
     private String nickname;
     private String gender;
-    private Integer age;
+    // private Integer age;
     private String email;
     private String password;
 }
