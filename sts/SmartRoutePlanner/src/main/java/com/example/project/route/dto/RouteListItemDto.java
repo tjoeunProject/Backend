@@ -29,5 +29,6 @@ public class RouteListItemDto {
         this.startDate = route.getStartDate();
         this.endDate = route.getEndDate();
         this.totalDays = route.getTotalDays();
+        
     }
 }
