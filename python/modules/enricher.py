@@ -1,4 +1,4 @@
-# enricher.py
+# Gemini API 호출해서 각 장소별 duration_min(체류시간) / best_time(추천 시간대) 생성.
 import json
 import os
 import google.generativeai as genai
