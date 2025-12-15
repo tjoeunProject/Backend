@@ -63,7 +63,7 @@ class PlaceRecommender:
                 "q": final_query,
                 "ll": f"@{lat},{lng},15z",
                 "type": "search",
-                "api_key": self.serp_api_key,
+                "api_key": self.api_key,
                 "hl": "ko", "gl": "kr"
             }
 
@@ -140,13 +140,6 @@ class PlaceRecommender:
                     results = search.get_dict()
                     local_results = results.get("local_results", [])
 
-                    # Fallback (2차 검색)
-                    if not local_results:
-                        print(f"   ⚠️ '{query}' 결과 없음. '맛집' 키워드로 재검색...")
-                        params['q'] = "맛집"
-                        search_fallback = GoogleSearch(params)
-                        results_fallback = search_fallback.get_dict()
-                        local_results = results_fallback.get("local_results", [])
 
                     if local_results:
                         # 필터링
@@ -187,7 +180,7 @@ class PlaceRecommender:
                                 "name": pick.get("title"),
                                 "category": pick.get("type", "음식점"),
                                 "meal_type": meal_label,
-                                "formatted_address": pick.get("address"), 
+                                "vicinity": pick.get("address"), 
                                 "rating": pick.get("rating"),
                                 "reviews": pick.get("parsed_reviews"),
                                 "formatted_phone_number": details.get("phone_number") or pick.get("phone"),
