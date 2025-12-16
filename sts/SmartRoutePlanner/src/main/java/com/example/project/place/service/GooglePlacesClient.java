@@ -45,7 +45,7 @@ public class GooglePlacesClient {
      */
     public PlaceRequestDto fetchPlaceDetails(String placeId) {
 
-        String url = "https://places.googleapis.com/v1/places/" + placeId;
+        String url = "https://places.googleapis.com/v1/places/" + placeId + "?languageCode=ko";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-Goog-Api-Key", apiKey);
