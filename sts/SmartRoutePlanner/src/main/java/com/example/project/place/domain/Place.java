@@ -48,7 +48,5 @@ public class Place {
     private int photoWidth;
     private int photoHeight;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "route_id")
-    private Route route;
+
 }
