@@ -16,4 +16,8 @@ public class AuthenticationResponse {
   private String accessToken;
   @JsonProperty("refresh_token")
   private String refreshToken;
+  
+//[추가] 프론트엔드로 보낼 사용자 ID
+ @JsonProperty("user_id") 
+ private Integer userId;
 }

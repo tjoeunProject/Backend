@@ -43,6 +43,7 @@ public class AuthenticationService {
     return AuthenticationResponse.builder()
         .accessToken(jwtToken)
         .refreshToken(refreshToken)
+        .userId(user.getId()) // ★ 여기 추가: DB에서 조회한 user의 ID를 넣음
         .build();
   }
 
@@ -62,6 +63,7 @@ public class AuthenticationService {
     return AuthenticationResponse.builder()
         .accessToken(jwtToken)
         .refreshToken(refreshToken)
+        .userId(user.getId()) // ★ 여기 추가: DB에서 조회한 user의 ID를 넣음
         .build();
   }
 
