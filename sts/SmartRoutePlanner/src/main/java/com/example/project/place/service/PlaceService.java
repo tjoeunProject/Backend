@@ -194,7 +194,7 @@ public class PlaceService {
      *
      * 외부 API 실패 시 PlaceApiException으로 변환
      */
-    public Place savePlaceFromGoogle(String placeId) {
+    public Place savePlaceFromGoogle(String placeId, Long routeId) {
 
         return placeRepository.findOptionalByGooglePlaceId(placeId)
                 .orElseGet(() -> {
@@ -202,6 +202,7 @@ public class PlaceService {
                     PlaceRequestDto dto =
                             googlePlacesClient.fetchPlaceDetails(placeId);
 
+                    
                     if (dto == null) {
                         throw new PlaceApiException(
                                 "Google Place Details 응답 null placeId=" + placeId
@@ -214,6 +215,7 @@ public class PlaceService {
                         );
                     }
 
+                    dto.setRouteId(routeId);
                     return savePlace(dto);
                 });
     }

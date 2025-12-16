@@ -110,41 +110,41 @@ def generate_course(data: dict):
                 final_itinerary.append([])
                 continue
 
-            # --- 맛집 검색 및 주입 (기존 로직 재사용) ---
-            num_spots = len(route_places)
-            if num_spots > 0:
-                # 점심: 일정의 중간 지점 근처 / 저녁: 일정의 마지막 지점 근처
-                lunch_anchor = route_places[min(num_spots // 2, num_spots - 1)]
-                dinner_anchor = route_places[-1]
+        #     # --- 맛집 검색 및 주입 (기존 로직 재사용) ---
+        #     num_spots = len(route_places)
+        #     if num_spots > 0:
+        #         # 점심: 일정의 중간 지점 근처 / 저녁: 일정의 마지막 지점 근처
+        #         lunch_anchor = route_places[min(num_spots // 2, num_spots - 1)]
+        #         dinner_anchor = route_places[-1]
 
-                try:
-                    # 점심 검색
-                    lunch_spot = recommender.search_one_nearby(
-                        lat=lunch_anchor['lat'], lng=lunch_anchor['lng'], 
-                        base_keyword="점심 맛집", tags=tags
-                    )
-                    # 저녁 검색
-                    dinner_spot = recommender.search_one_nearby(
-                        lat=dinner_anchor['lat'], lng=dinner_anchor['lng'], 
-                        base_keyword="저녁 맛집", tags=tags
-                    )
+        #         try:
+        #             # 점심 검색
+        #             lunch_spot = recommender.search_oz`ne_nearby(
+        #                 lat=lunch_anchor['lat'], lng=lunch_anchor['lng'], 
+        #                 base_keyword="점심 맛집", tags=tags
+        #             )
+        #             # 저녁 검색
+        #             dinner_spot = recommender.search_one_nearby(
+        #                 lat=dinner_anchor['lat'], lng=dinner_anchor['lng'], 
+        #                 base_keyword="저녁 맛집", tags=tags
+        #             )
 
-                    # 저녁 추가 (맨 뒤)
-                    if dinner_spot:
-                        dinner_spot['best_time'] = 'Dinner'
-                        dinner_spot['type'] = 'restaurant' # 타입 명시
-                        route_places.append(dinner_spot)
+        #             # 저녁 추가 (맨 뒤)
+        #             if dinner_spot:
+        #                 dinner_spot['best_time'] = 'Dinner'
+        #                 dinner_spot['type'] = 'restaurant' # 타입 명시
+        #                 route_places.append(dinner_spot)
                     
-                    # 점심 추가 (중간)
-                    if lunch_spot:
-                        lunch_spot['best_time'] = 'Lunch'
-                        lunch_spot['type'] = 'restaurant' # 타입 명시
-                        # 중간 인덱스에 삽입
-                        insert_idx = (num_spots // 2) + 1
-                        route_places.insert(insert_idx, lunch_spot)
+        #             # 점심 추가 (중간)
+        #             if lunch_spot:
+        #                 lunch_spot['best_time'] = 'Lunch'
+        #                 lunch_spot['type'] = 'restaurant' # 타입 명시
+        #                 # 중간 인덱스에 삽입
+        #                 insert_idx = (num_spots // 2) + 1
+        #                 route_places.insert(insert_idx, lunch_spot)
 
-                except Exception as e:
-                    print(f"⚠️ 맛집 추천 실패 (일정은 그대로 진행): {e}")
+        #         except Exception as e:
+        #             print(f"⚠️ 맛집 추천 실패 (일정은 그대로 진행): {e}")
 
         #     # --- 맛집 검색 및 주입 (기존 로직 재사용) ---
         #     num_spots = len(route_places)

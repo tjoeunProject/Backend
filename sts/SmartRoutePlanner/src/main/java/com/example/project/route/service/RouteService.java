@@ -66,7 +66,7 @@ public class RouteService {
          // [안쪽 for문]: 해당 날짜의 장소(Place)들을 순회합니다.
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId(), route.getId());
             	
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(saved);
@@ -195,7 +195,7 @@ public class RouteService {
 
                 // [수정 포인트] findById가 아니라 savePlaceFromGoogle 사용!
                 // sp.getPlaceId()는 이제 String(Google ID)입니다.
-                Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+                Place place = placeService.savePlaceFromGoogle(sp.getPlaceId(), routeId);
 
                 RoutePlace rp = new RoutePlace();
                 rp.setRoute(route);
