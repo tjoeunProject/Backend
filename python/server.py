@@ -10,7 +10,7 @@ from modules.optimizer import RouteOptimizer
 from modules.recommender import PlaceRecommender
 
 # [변경] V2 Generator 사용
-from modules.generator_v2 import CourseGeneratorV2
+from modules.generator import CourseGenerator
 
 load_dotenv()
 
@@ -36,48 +36,123 @@ optimizer = RouteOptimizer()
 recommender = PlaceRecommender(SERPAPI_KEY, GOOGLE_MAPS_KEY)
 
 # [변경] V2 Generator 초기화 (Maps Key 추가)
-generator = CourseGeneratorV2(GEMINI_KEY, SERPAPI_KEY, GOOGLE_MAPS_KEY)
-
+generator = CourseGenerator(GEMINI_KEY, SERPAPI_KEY)
 
 # =========================================================
-#  1. Generate API (AI 일정 생성 - V2 적용)
+#  1. [NEW] Generate API (AI 일정 생성)
+#  Input: 목적지, 기간, 태그
+#  Output: 검증된 일차별 장소 리스트 (Day 1, Day 2...)
 # =========================================================
 @app.post("/generate")
 def generate_course(data: dict):
-    print(f"📥 [Generate 요청]: {data}")
+    print(f"📥 [수신 데이터]: {data}")
 
-    # 1. 데이터 파싱
+    # 1. 데이터 꺼내기
     destination = data.get("destination")
     days = data.get("days")
     tags = data.get("tags", [])
 
-    # 2. 예외 처리
+    # 2. days 안전 변환
     try:
         days = int(days)
     except:
         days = 1
 
+    # 3. destination을 regions 리스트로 변환 (CourseGenerator는 리스트를 기대함)
     if isinstance(destination, str):
         regions = [destination]
     else:
-        regions = destination
+        regions = destination # 이미 리스트인 경우
 
     try:
-        # [핵심] V2 메서드 호출
-        # generator_v2.py 안에서 (관광지생성 -> 시간분석 -> 맛집추가 -> 포맷팅) 다 끝내서 줌
-        result = generator.generate_full_course(regions, days, tags)
+        # -----------------------------------------------------
+        # 🔥 [핵심 변경] CourseGenerator가 검색->분류->최적화까지 수행
+        # -----------------------------------------------------
+        # 기존: generator.generate -> loop -> optimizer.optimize
+        # 변경: course_generator.generate_schedule (한방에 처리)
+        optimized_course_dict = generator.generate_schedule(regions, days, tags)
 
-        if not result or not result.get("optimized_places"):
+        if not optimized_course_dict:
             return {"optimized_places": []}
 
-        print("✅ 최종 일정 생성 완료 (V2)")
-        return result
+        # -----------------------------------------------------
+        # 🍽️ [맛집 추가 로직]
+        # CourseGenerator는 관광지 위주이므로, 여기서 점심/저녁을 끼워넣습니다.
+        # -----------------------------------------------------
+        final_itinerary = []
+
+        # 날짜 정렬용 헬퍼 함수
+        def extract_day_number(key_str):
+            import re
+            match = re.search(r'\d+', str(key_str))
+            return int(match.group()) if match else 999
+
+        # 최적화된 결과(Dictionary)의 키를 Day 1, Day 2 순서로 정렬
+        sorted_keys = sorted(optimized_course_dict.keys(), key=extract_day_number)
+
+        for day in sorted_keys:
+            # CourseGenerator 결과 구조에 따라 접근 (보통 {"places": [...]})
+            day_data = optimized_course_dict[day]
+            
+            # optimizer 리턴 구조가 {"places": [...]} 인지, 바로 리스트 [...] 인지에 따라 대응
+            if isinstance(day_data, dict) and "places" in day_data:
+                route_places = day_data["places"]
+            elif isinstance(day_data, list):
+                route_places = day_data
+            else:
+                route_places = []
+
+            if not route_places:
+                final_itinerary.append([])
+                continue
+
+        #     # --- 맛집 검색 및 주입 (기존 로직 재사용) ---
+        #     num_spots = len(route_places)
+        #     if num_spots > 0:
+        #         # 점심: 일정의 중간 지점 근처 / 저녁: 일정의 마지막 지점 근처
+        #         lunch_anchor = route_places[min(num_spots // 2, num_spots - 1)]
+        #         dinner_anchor = route_places[-1]
+
+        #         try:
+        #             # 점심 검색
+        #             lunch_spot = recommender.search_oz`ne_nearby(
+        #                 lat=lunch_anchor['lat'], lng=lunch_anchor['lng'], 
+        #                 base_keyword="점심 맛집", tags=tags
+        #             )
+        #             # 저녁 검색
+        #             dinner_spot = recommender.search_one_nearby(
+        #                 lat=dinner_anchor['lat'], lng=dinner_anchor['lng'], 
+        #                 base_keyword="저녁 맛집", tags=tags
+        #             )
+
+        #             # 저녁 추가 (맨 뒤)
+        #             if dinner_spot:
+        #                 dinner_spot['best_time'] = 'Dinner'
+        #                 dinner_spot['type'] = 'restaurant' # 타입 명시
+        #                 route_places.append(dinner_spot)
+                    
+        #             # 점심 추가 (중간)
+        #             if lunch_spot:
+        #                 lunch_spot['best_time'] = 'Lunch'
+        #                 lunch_spot['type'] = 'restaurant' # 타입 명시
+        #                 # 중간 인덱스에 삽입
+        #                 insert_idx = (num_spots // 2) + 1
+        #                 route_places.insert(insert_idx, lunch_spot)
+
+        #         except Exception as e:
+        #             print(f"⚠️ 맛집 추천 실패 (일정은 그대로 진행): {e}")
+
+            # 최종 결과 리스트에 해당 일차 추가
+            final_itinerary.append(route_places)
+
+        # 4. 프론트엔드 형식으로 반환
+        print("✅ 최종 일정 생성 완료")
+        return {"optimized_places": final_itinerary}
 
     except Exception as e:
         print(f"❌ Server Error: {e}")
+        # 디버깅을 위해 에러 내용을 포함하여 반환
         raise HTTPException(status_code=500, detail=str(e))
-
-
 # =========================================================
 #  2. Optimize API (기존 코드 100% 유지)
 # =========================================================
