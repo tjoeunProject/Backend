@@ -110,7 +110,22 @@ public class RouteService {
                             
                             // Place 정보를 담을 DTO 생성
                             PlaceSummaryDto dto = new PlaceSummaryDto();
+                         // 1. Types
+                            dto.setTypes(new ArrayList<>(p.getTypes())); 
+
+                            // 2. PhotoReferences
+                            if (p.getPhotoReferences() != null) {
+                                dto.setPhotoReferences(new ArrayList<>(p.getPhotoReferences()));
+                            } else {
+                                dto.setPhotoReferences(new ArrayList<>());
+                            }
                             
+                            // 3. HtmlAttributions
+                            if (p.getHtmlAttributions() != null) {
+                                dto.setHtmlAttributions(new ArrayList<>(p.getHtmlAttributions()));
+                            } else {
+                                 dto.setHtmlAttributions(new ArrayList<>());
+                            }
                             // [Place 객체 데이터 복사] 
                             // PlaceResponseDto에 있는 모든 필드를 그대로 옮겨 담습니다.
                             dto.setId(p.getId());
@@ -121,11 +136,6 @@ public class RouteService {
                             dto.setLng(p.getLng());
                             dto.setRating(p.getRating());
                             dto.setUserRatingsTotal(p.getUserRatingsTotal());
-                            dto.setTypes(p.getTypes());
-                            dto.setPhotoReferences(p.getPhotoReferences()); // 사진 정보 포함
-                            // ... 필요한 모든 Place 필드 set
-                            dto.setHtmlAttributions(p.getHtmlAttributions());
-                            // [순서 정보 추가]
                             dto.setOrderIndex(rp.getOrderIndex());
 
                             return dto;
