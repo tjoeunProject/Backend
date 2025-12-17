@@ -40,11 +40,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     final String authHeader = request.getHeader("Authorization");
     final String jwt;
     final String userEmail;
+    
     if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
       filterChain.doFilter(request, response);
       return;
     }
+    
     jwt = authHeader.substring(7);
+    
+ // 2. 프론트엔드가 실수로 보낸 "null" 문자열 방어
+    if (jwt == null || jwt.equals("null") || jwt.equals("undefined") || jwt.trim().isEmpty()) {
+        // 토큰이 없는 것으로 간주하고 다음 필터로 넘김
+        filterChain.doFilter(request, response);
+        return;
+    }
+    
     userEmail = jwtService.extractUsername(jwt);
     if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
       UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
@@ -63,6 +73,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SecurityContextHolder.getContext().setAuthentication(authToken);
       }
     }
+    
+    
     filterChain.doFilter(request, response);
   }
 }
