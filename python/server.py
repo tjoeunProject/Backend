@@ -1,18 +1,38 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import uvicorn
 import os
 from dotenv import load_dotenv
 
-# --- 모듈 import ---
+# --- 모듈 import (기존 기능 유지를 위해 모두 필요) ---
 from modules.enricher import PlaceProcessor
 from modules.clustering import DaySegmenter
 from modules.recommender import PlaceRecommender
-
-# [변경] V2  사용
 from modules.generator_v2 import CourseGeneratorV2
 from modules.optimizer_v2 import RouteOptimizer 
 
+# 1. 환경 변수 로드
 load_dotenv()
+
+# 2. 키 가져오기 (변수명 수정됨: GOOGLE_MAPS_API_KEY)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY") # [수정됨]
+
+# 3. 키 로드 상태 확인 (로그 출력)
+print("\n" + "="*40)
+print("🔑 서버 시작: API 키 로드 확인")
+if GEMINI_API_KEY: print("✅ GEMINI_API_KEY 로드 완료")
+else: print("❌ GEMINI_API_KEY 없음")
+
+if SERPAPI_KEY: print("✅ SERPAPI_KEY 로드 완료")
+else: print("❌ SERPAPI_KEY 없음")
+
+if GOOGLE_MAPS_API_KEY: print("✅ GOOGLE_MAPS_API_KEY 로드 완료")
+else: print("❌ GOOGLE_MAPS_API_KEY 없음 (.env 변수명 확인 필요)")
+print("="*40 + "\n")
+
 
 app = FastAPI()
 
@@ -24,19 +44,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 환경변수
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-SERPAPI_KEY = os.getenv("SERPAPI_KEY")
-GOOGLE_MAPS_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
-
-# 모듈 초기화
-enricher = PlaceProcessor(GEMINI_KEY)
+# --- [중요] 모듈 초기화 (새로운 키 이름 전달) ---
+# 개별 API (/optimize, /nearby) 사용을 위한 인스턴스들
+enricher = PlaceProcessor(GEMINI_API_KEY)
 segmenter = DaySegmenter()
-optimizer = RouteOptimizer()
-recommender = PlaceRecommender(SERPAPI_KEY, GOOGLE_MAPS_KEY)
+optimizer = RouteOptimizer() 
+# [수정] GOOGLE_MAPS_API_KEY 전달
+recommender = PlaceRecommender(SERPAPI_KEY, GOOGLE_MAPS_API_KEY) 
 
-# [변경] V2 Generator 초기화 (Maps Key 추가)
-generator = CourseGeneratorV2(GEMINI_KEY, SERPAPI_KEY, GOOGLE_MAPS_KEY)
+# 메인 생성기 V2 초기화
+# [수정] GOOGLE_MAPS_API_KEY 전달
+generator = CourseGeneratorV2(GEMINI_API_KEY, SERPAPI_KEY, GOOGLE_MAPS_API_KEY)
 
 # =========================================================
 #  1. [NEW] Generate API (AI 일정 생성)
@@ -44,30 +62,30 @@ generator = CourseGeneratorV2(GEMINI_KEY, SERPAPI_KEY, GOOGLE_MAPS_KEY)
 #  Output: 검증된 일차별 장소 리스트 (Day 1, Day 2...)
 # =========================================================
 
+# ---------------------------------------------------------
+# DTO (Data Transfer Object) 정의
+# ---------------------------------------------------------
+class TripRequest(BaseModel):
+    destination: list[str] | str
+    days: int
+    tags: list[str] = []
+
 # =========================================================
-#  1. Generate API (AI 일정 생성 - V2 + Optimizer V2)
+#  1. Generate API (AI 일정 생성 - 메인)
 # =========================================================
 @app.post("/generate")
-def generate_course(data: dict):
-    print(f"📥 [Generate 요청]: {data}")
-
-    destination = data.get("destination")
-    days = data.get("days")
-    tags = data.get("tags", [])
-
-    try:
-        days = int(days)
-    except:
-        days = 1
-
-    if isinstance(destination, str):
-        regions = [destination]
+def generate_course(request: TripRequest):
+    print(f"📥 [Generate 요청]: {request.dict()}")
+    
+    # 리스트/문자열 처리
+    if isinstance(request.destination, str):
+        regions = [request.destination]
     else:
-        regions = destination
+        regions = request.destination
 
     try:
-        # V2 호출 (내부에서 optimizer_v2 사용함)
-        result = generator.generate_full_course(regions, days, tags)
+        # V2 생성기 호출
+        result = generator.generate_full_course(regions, request.days, request.tags)
 
         if not result or not result.get("optimized_places"):
             return {"optimized_places": []}
@@ -81,32 +99,39 @@ def generate_course(data: dict):
 
 
 # =========================================================
-#  2. Optimize API (기존 코드 100% 유지)
+#  2. Optimize API (재최적화 기능)
 # =========================================================
 @app.post("/optimize")
 def optimize(data: dict):
     places = data.get("places", [])
     days = int(data.get("days", 1))
 
+    print(f"📥 [Optimize 요청] 장소 {len(places)}개, {days}일")
+
     if not places:
         return {"error": "No place data received"}
 
-    # 1) Enrich (체류시간/추천시간대)
-    places = enricher.process(places)
-    # 2) Segment (일차 분배)
-    segmented = segmenter.segment1(places, n_days=days)
-    # 3) Optimize (경로 최적화)
-    optimized = optimizer.optimize(segmented)
+    try:
+        # 1) Enrich (AI 정보 보강)
+        places = enricher.process(places)
+        # 2) Segment (날짜 분배)
+        segmented = segmenter.segment1(places, n_days=days)
+        # 3) Optimize (V2 동선 최적화)
+        optimized = optimizer.optimize(segmented)
 
-    # 배열 형태로 변환 (React 포맷)
-    sorted_keys = sorted(optimized.keys(), key=lambda x: int(x.split()[1]))
-    itinerary_list = [optimized[k]["places"] for k in sorted_keys]
+        # 날짜 순서대로 정렬해서 리스트 변환
+        # Day 1, Day 2... 키 정렬
+        sorted_keys = sorted(optimized.keys(), key=lambda x: int(x.split()[1]) if len(x.split()) > 1 else 999)
+        itinerary_list = [optimized[k]["places"] for k in sorted_keys]
 
-    return {"optimized_places": itinerary_list}
+        return {"optimized_places": itinerary_list}
+    except Exception as e:
+        print(f"❌ Optimize Error: {e}")
+        return {"error": str(e)}
 
 
 # =========================================================
-#  3. Nearby API (기존 코드 100% 유지)
+#  3. Nearby API (주변 맛집 수동 검색)
 # =========================================================
 @app.post("/nearby")
 def nearby(data: dict):
@@ -115,25 +140,29 @@ def nearby(data: dict):
     if not itinerary_list:
         return {"error": "No itinerary data received"}
 
-    itinerary_dict = {}
-    for i, day_places in enumerate(itinerary_list):
-        itinerary_dict[f"Day {i+1}"] = {"places": day_places}
+    print(f"📥 [Nearby 요청] 주변 맛집 검색 시작")
 
-    # 맛집 검색 수행
-    raw_recommendations = recommender.get_dining_recommendations(itinerary_dict)
-    
-    # PhotoUrl 매핑 처리
-    final_recommendations = []
-    for rec in raw_recommendations:
-        image_source = rec.get("thumbnail")
-        if not image_source and rec.get("detail_photos"):
-            image_source = rec.get("detail_photos")[0]
-            
-        rec["photoUrl"] = image_source
-        final_recommendations.append(rec)
+    try:
+        itinerary_dict = {}
+        for i, day_places in enumerate(itinerary_list):
+            itinerary_dict[f"Day {i+1}"] = {"places": day_places}
 
-    return {"recommendations": final_recommendations}
+        raw_recommendations = recommender.get_dining_recommendations(itinerary_dict)
+        
+        final_recommendations = []
+        for rec in raw_recommendations:
+            image_source = rec.get("thumbnail")
+            if not image_source and rec.get("detail_photos"):
+                image_source = rec.get("detail_photos")[0]
+                
+            rec["photoUrl"] = image_source
+            final_recommendations.append(rec)
+
+        return {"recommendations": final_recommendations}
+    except Exception as e:
+        print(f"❌ Nearby Error: {e}")
+        return {"error": str(e)}
+
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)

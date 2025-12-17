@@ -19,7 +19,7 @@ class PlaceRecommender:
             "📷 인스타 감성 / 사진 맛집": "Visually stunning photo spots, instagrammable decor.",
             "🌃 야경이 예쁜": "Night views, observatories, evening spots.",
             "🍽️ 맛집 탐방": "Famous local restaurants, waiting lines worthy.",
-            "☕ 카페 투어": "Famous cafes, specialty coffee, deserts.",
+            #"☕ 카페 투어": "Famous cafes, specialty coffee, deserts.",
             "🤸 액티비티": "Active experiences, sports, outdoor activities.",
             "🛍️ 쇼핑하기 좋은": "Shopping districts, malls, souvenirs.",
         }
