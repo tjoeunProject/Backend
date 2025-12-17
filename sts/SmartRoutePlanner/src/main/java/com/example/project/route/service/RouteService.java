@@ -110,7 +110,22 @@ public class RouteService {
                             
                             // Place 정보를 담을 DTO 생성
                             PlaceSummaryDto dto = new PlaceSummaryDto();
+                         // 1. Types
+                            dto.setTypes(new ArrayList<>(p.getTypes())); 
+
+                            // 2. PhotoReferences
+                            if (p.getPhotoReferences() != null) {
+                                dto.setPhotoReferences(new ArrayList<>(p.getPhotoReferences()));
+                            } else {
+                                dto.setPhotoReferences(new ArrayList<>());
+                            }
                             
+                            // 3. HtmlAttributions
+                            if (p.getHtmlAttributions() != null) {
+                                dto.setHtmlAttributions(new ArrayList<>(p.getHtmlAttributions()));
+                            } else {
+                                 dto.setHtmlAttributions(new ArrayList<>());
+                            }
                             // [Place 객체 데이터 복사] 
                             // PlaceResponseDto에 있는 모든 필드를 그대로 옮겨 담습니다.
                             dto.setId(p.getId());
@@ -121,11 +136,6 @@ public class RouteService {
                             dto.setLng(p.getLng());
                             dto.setRating(p.getRating());
                             dto.setUserRatingsTotal(p.getUserRatingsTotal());
-                            dto.setTypes(p.getTypes());
-                            dto.setPhotoReferences(p.getPhotoReferences()); // 사진 정보 포함
-                            // ... 필요한 모든 Place 필드 set
-                            dto.setHtmlAttributions(p.getHtmlAttributions());
-                            // [순서 정보 추가]
                             dto.setOrderIndex(rp.getOrderIndex());
 
                             return dto;
@@ -163,9 +173,20 @@ public class RouteService {
         List<Route> routes =
                 routeRepository.findAllByUser_Id(memberId.intValue());
 
-        // List<Route> -> List<RouteListItemDto> 변환
+     // Stream map을 사용하여 각 Route마다 첫 번째 장소를 찾아서 DTO 생성
         return routes.stream()
-                .map(RouteListItemDto::new)
+                .map(route -> {
+                    // 1. 해당 루트의 첫 번째 장소(RoutePlace) 조회
+                    RoutePlace firstRp = routePlaceRepository
+                            .findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(route.getId())
+                            .orElse(null);
+
+                    // 2. RoutePlace에서 Place(장소 원본) 꺼내기 (없으면 null)
+                    Place firstPlace = (firstRp != null) ? firstRp.getPlace() : null;
+
+                    // 3. DTO 생성 (Route + Place 정보)
+                    return new RouteListItemDto(route, firstPlace);
+                })
                 .collect(Collectors.toList());
     }
 

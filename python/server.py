@@ -56,6 +56,11 @@ recommender = PlaceRecommender(SERPAPI_KEY, GOOGLE_MAPS_API_KEY)
 # [수정] GOOGLE_MAPS_API_KEY 전달
 generator = CourseGeneratorV2(GEMINI_API_KEY, SERPAPI_KEY, GOOGLE_MAPS_API_KEY)
 
+# =========================================================
+#  1. [NEW] Generate API (AI 일정 생성)
+#  Input: 목적지, 기간, 태그
+#  Output: 검증된 일차별 장소 리스트 (Day 1, Day 2...)
+# =========================================================
 
 # ---------------------------------------------------------
 # DTO (Data Transfer Object) 정의

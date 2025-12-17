@@ -7,6 +7,9 @@ from modules.clustering import DaySegmenter
 import re
 from modules.optimizer_v2 import RouteOptimizer 
 
+# [수정 1] 새로 만든 optimizer_v2에서 클래스 가져오기 (이름이 RouteOptimizer라고 가정)
+from modules.optimizer_v2 import RouteOptimizer 
+
 class CourseGeneratorV2(CourseGenerator):
     def __init__(self, gemini_key, serp_key, google_maps_key=None):
         super().__init__(gemini_key, serp_key)

@@ -20,6 +20,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import com.example.project.place.domain.Place;
+import com.example.project.route.domain.RoutePlace;
 
 public interface PlaceRepository extends JpaRepository<Place, Long> {
 
@@ -39,6 +40,7 @@ public interface PlaceRepository extends JpaRepository<Place, Long> {
      */
     Optional<Place> findOptionalByGooglePlaceId(String googlePlaceId);
 
+    
     /**
      * 키워드 검색
      * name, formattedAddress, types 컬렉션 중 하나라도 keyword를 포함하는 Place를 조회한다.
