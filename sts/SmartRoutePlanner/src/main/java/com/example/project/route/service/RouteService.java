@@ -173,9 +173,20 @@ public class RouteService {
         List<Route> routes =
                 routeRepository.findAllByUser_Id(memberId.intValue());
 
-        // List<Route> -> List<RouteListItemDto> 변환
+     // Stream map을 사용하여 각 Route마다 첫 번째 장소를 찾아서 DTO 생성
         return routes.stream()
-                .map(RouteListItemDto::new)
+                .map(route -> {
+                    // 1. 해당 루트의 첫 번째 장소(RoutePlace) 조회
+                    RoutePlace firstRp = routePlaceRepository
+                            .findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(route.getId())
+                            .orElse(null);
+
+                    // 2. RoutePlace에서 Place(장소 원본) 꺼내기 (없으면 null)
+                    Place firstPlace = (firstRp != null) ? firstRp.getPlace() : null;
+
+                    // 3. DTO 생성 (Route + Place 정보)
+                    return new RouteListItemDto(route, firstPlace);
+                })
                 .collect(Collectors.toList());
     }
 
