@@ -1,6 +1,7 @@
 package com.example.project.route.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,4 +27,6 @@ public interface RoutePlaceRepository extends JpaRepository<RoutePlace, Long> {
      * 특정 일정에 속한 모든 RoutePlace 삭제 (일정 수정/삭제 시 사용)
      */
     void deleteByRouteId(Long routeId);
+    
+    Optional<RoutePlace> findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(Long routeId);
 }

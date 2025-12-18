@@ -38,7 +38,6 @@ public class SecurityConfiguration {
 
     private static final String[] WHITE_LIST_URL = {"/api/v1/auth/**",
     		"/api/test",
-    		"/sts/*",
             "/v2/api-docs",
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -60,11 +59,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(req ->
                         req.requestMatchers(WHITE_LIST_URL)
                                 .permitAll()
-                                .requestMatchers("/api/v1/management/**").hasAnyRole(ADMIN.name(), MANAGER.name())
-                                .requestMatchers(GET, "/api/v1/management/**").hasAnyAuthority(ADMIN_READ.name(), MANAGER_READ.name())
-                                .requestMatchers(POST, "/api/v1/management/**").hasAnyAuthority(ADMIN_CREATE.name(), MANAGER_CREATE.name())
-                                .requestMatchers(PUT, "/api/v1/management/**").hasAnyAuthority(ADMIN_UPDATE.name(), MANAGER_UPDATE.name())
-                                .requestMatchers(DELETE, "/api/v1/management/**").hasAnyAuthority(ADMIN_DELETE.name(), MANAGER_DELETE.name())
+                                .requestMatchers(GET, "/api/route/**").permitAll()
                                 .requestMatchers("/", "/index.html", "/login.html", "/register.html").permitAll() // ★ HTML 페이지 접근 허용
                                 .requestMatchers("/css/**", "/js/**").permitAll() // 정적 자원 허용
                                 .anyRequest()

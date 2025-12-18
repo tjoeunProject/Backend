@@ -101,8 +101,8 @@ public class PlaceController {
      * 서버에서 Google API를 호출해 Place 정보를 저장한다.
      */
     @GetMapping("/google")
-    public PlaceResponseDto savePlaceFromGoogle(@RequestParam String placeId, @RequestParam Long routeId) {
-        Place place = placeService.savePlaceFromGoogle(placeId, routeId);
+    public PlaceResponseDto savePlaceFromGoogle(@RequestParam String placeId) {
+        Place place = placeService.savePlaceFromGoogle(placeId);
         return toDto(place);
     }
 
