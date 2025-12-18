@@ -94,7 +94,7 @@ def optimize(data: dict):
     # 1) Enrich (체류시간/추천시간대)
     places = enricher.process(places)
     # 2) Segment (일차 분배)
-    segmented = segmenter.segment1(places, n_days=days)
+    segmented = segmenter.segment(places, n_days=days)
     # 3) Optimize (경로 최적화)
     optimized = optimizer.optimize(segmented)
 

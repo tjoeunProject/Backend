@@ -3,6 +3,7 @@ from geopy.distance import geodesic
 from modules.generator import CourseGenerator
 from modules.recommender import PlaceRecommender
 from modules.enricher import PlaceProcessor
+from geopy.distance import geodesic
 import re
 
 # [수정 1] 새로 만든 optimizer_v2에서 클래스 가져오기 (이름이 RouteOptimizer라고 가정)
@@ -89,6 +90,9 @@ class CourseGeneratorV2(CourseGenerator):
         LUNCH_TARGET = 690   # 11:30
         DINNER_TARGET = 1050 # 17:30
 
+        # [추가] 식사 추가 허용 최대 거리 (km)
+        MAX_DINING_DIST_KM = 3.0
+    
         last_place = None 
 
         for place in places:
@@ -99,33 +103,47 @@ class CourseGeneratorV2(CourseGenerator):
             duration = place.get('duration_min', 90)
             current_time += duration
             
-            # 점심 로직
-            if not lunch_added and current_time >= LUNCH_TARGET:
-                print(f"   🍽️ 점심 추가 (시간: {int(current_time/60)}:{current_time%60:02d})")
-                restaurant = self._find_restaurant(place, "점심", tags)
-                if restaurant:
+        # 점심 로직
+        if not lunch_added and current_time >= LUNCH_TARGET:
+            restaurant = self._find_restaurant(place, "점심", tags)
+            
+            # [수정] 거리 체크 로직 추가
+            if restaurant:
+                dist = geodesic((place['lat'], place['lng']), (restaurant['lat'], restaurant['lng'])).km
+                if dist <= MAX_DINING_DIST_KM:
+                    print(f"   🍽️ 점심 추가 (시간: {int(current_time/60)}:{current_time%60:02d}, 거리: {dist:.1f}km)")
                     restaurant['day'] = day_seq
                     new_schedule.append(restaurant)
                     current_time += 60
                     lunch_added = True
+                else:
+                    print(f"   ⚠️ 점심 건너뜀: 가장 가까운 식당이 너무 멂 ({dist:.1f}km)")
+        
+        # 저녁 로직
+        if not dinner_added and current_time >= DINNER_TARGET:
+            restaurant = self._find_restaurant(place, "저녁", tags)
             
-            # 저녁 로직
-            if not dinner_added and current_time >= DINNER_TARGET:
-                print(f"   🍽️ 저녁 추가 (시간: {int(current_time/60)}:{current_time%60:02d})")
-                restaurant = self._find_restaurant(place, "저녁", tags)
-                if restaurant:
+            # [수정] 거리 체크 로직 추가
+            if restaurant:
+                dist = geodesic((place['lat'], place['lng']), (restaurant['lat'], restaurant['lng'])).km
+                if dist <= MAX_DINING_DIST_KM:
+                    print(f"   🍽️ 저녁 추가 (시간: {int(current_time/60)}:{current_time%60:02d}, 거리: {dist:.1f}km)")
                     restaurant['day'] = day_seq
                     new_schedule.append(restaurant)
                     current_time += 90
                     dinner_added = True
+                else:
+                    print(f"   ⚠️ 저녁 건너뜀: 가장 가까운 식당이 너무 멂 ({dist:.1f}km)")
 
-        # 저녁 누락 방지
-        if not dinner_added and last_place:
-            print(f"   🌙 일정 종료 후 저녁 추가 (시간: {int(current_time/60)}:{current_time%60:02d})")
-            restaurant = self._find_restaurant(last_place, "저녁", tags)
-            if restaurant:
-                restaurant['day'] = day_seq
-                new_schedule.append(restaurant)
+            # 저녁 누락 방지 (마지막 장소 기준)
+            if not dinner_added and last_place:
+                restaurant = self._find_restaurant(last_place, "저녁", tags)
+                if restaurant:
+                    dist = geodesic((last_place['lat'], last_place['lng']), (restaurant['lat'], restaurant['lng'])).km
+                    if dist <= MAX_DINING_DIST_KM:
+                        print(f"   🌙 일정 종료 후 저녁 추가 (거리: {dist:.1f}km)")
+                        restaurant['day'] = day_seq
+                        new_schedule.append(restaurant)
 
         return new_schedule
 
