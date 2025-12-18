@@ -9,11 +9,6 @@ group = 'com.study'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
 
 configurations {
     compileOnly {
@@ -55,6 +50,7 @@ dependencies {
 
     // 3. Swagger (SpringDoc)
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0'
+	implementation 'org.hashids:hashids:1.0.3'
 }
 
 tasks.named('test') {

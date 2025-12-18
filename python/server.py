@@ -111,23 +111,18 @@ def optimize(data: dict):
     if not places:
         return {"error": "No place data received"}
 
-    try:
-        # 1) Enrich (AI 정보 보강)
-        places = enricher.process(places)
-        # 2) Segment (날짜 분배)
-        segmented = segmenter.segment1(places, n_days=days)
-        # 3) Optimize (V2 동선 최적화)
-        optimized = optimizer.optimize(segmented)
+    # 1) Enrich (체류시간/추천시간대)
+    places = enricher.process(places)
+    # 2) Segment (일차 분배)
+    segmented = segmenter.segment(places, n_days=days)
+    # 3) Optimize (경로 최적화)
+    optimized = optimizer.optimize(segmented)
 
-        # 날짜 순서대로 정렬해서 리스트 변환
-        # Day 1, Day 2... 키 정렬
-        sorted_keys = sorted(optimized.keys(), key=lambda x: int(x.split()[1]) if len(x.split()) > 1 else 999)
-        itinerary_list = [optimized[k]["places"] for k in sorted_keys]
+    # 배열 형태로 변환 (React 포맷)
+    sorted_keys = sorted(optimized.keys(), key=lambda x: int(x.split()[1]))
+    itinerary_list = [optimized[k]["places"] for k in sorted_keys]
 
-        return {"optimized_places": itinerary_list}
-    except Exception as e:
-        print(f"❌ Optimize Error: {e}")
-        return {"error": str(e)}
+    return {"optimized_places": itinerary_list}
 
 
 # =========================================================
