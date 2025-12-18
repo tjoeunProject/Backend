@@ -15,100 +15,150 @@ class CourseGenerator:
         self.segmenter = DaySegmenter()
 
     def generate_schedule(self, regions, days, tags):
-        print(f"🚀 여행 일정 생성 시작: 지역={regions}, 기간={days}일")
+        print(f"🚀 여행 일정 생성 시작: 지역={regions}, 기간={days}일, 태그={tags}")
 
-        total_needed = days * 5
-        search_limit = math.ceil(total_needed / len(regions)) + 5
+        # ---------------------------------------------------------
+        # [설정] 하루 방문 장소 개수 및 비율 설정
+        # ---------------------------------------------------------
+        SPOTS_PER_DAY = 5   # 하루 총 방문지 개수
         
-        pool = self._search_places_by_regions(regions, search_limit)
-        
-        if not pool:
-            print("❌ 검색된 장소가 없습니다.")
-            return {}
+        cafe_per_day = 0
+        tour_per_day = SPOTS_PER_DAY
 
-        places_per_region = math.ceil(total_needed / len(regions))
+        if "☕ 카페 투어" in tags:
+            print("☕ '카페 투어' 모드: 하루에 카페 1곳을 포함합니다.")
+            cafe_per_day = 1
+            tour_per_day = SPOTS_PER_DAY - 1 
+        
+        # ---------------------------------------------------------
+        # [검색] 관광지와 카페를 별도로 검색해서 모으기
+        # ---------------------------------------------------------
         selected_places = []
-        
+        places_per_region = math.ceil(days / len(regions)) 
+
         for region in regions:
-            region_places = [p for p in pool if p['region'] == region]
-            region_places_sorted = sorted(
-                region_places, 
+            # 1. 관광지 검색
+            needed_tours = places_per_region * tour_per_day
+            # [수정] 검색 limit를 넉넉하게 2배수로 설정 (필터링 대비)
+            tours_pool = self._search_places_by_regions([region], limit=int(needed_tours * 2.0), keyword_suffix="관광지")
+            
+            tours_picked = sorted(
+                tours_pool, 
                 key=lambda x: (x.get('rating', 0), x.get('reviews', 0)), 
                 reverse=True
-            )
-            picked = region_places_sorted[:places_per_region]
-            selected_places.extend(picked)
-            print(f"   👉 [{region}] 할당량 {places_per_region}개 중 {len(picked)}개 선정")
+            )[:needed_tours]
 
-        if len(selected_places) > total_needed:
-             selected_places = sorted(selected_places, key=lambda x: (x.get('rating', 0), x.get('reviews', 0)), reverse=True)
-             selected_places = selected_places[:total_needed]
-
-        print(f"✂️ 최종 선정된 장소: {len(selected_places)}개")
-
-        print("📅 날짜 배분 (segment1)...")
-        dated_places = self.segmenter.segment1(selected_places, days)
-
-        print("🔄 동선 최적화(TSP) 및 최종 JSON 변환 중...")
-        final_itinerary = self.optimizer.optimize(dated_places)
-        
-        return final_itinerary
-
-    def _search_places_by_regions(self, regions, limit):
-        pool = []
-        print(f"🔍 지역별 관광지 검색 중 (지역당 최대 {limit}곳)...")
-
-        for region in regions:
-            query = f"{region} 관광지 가볼만한곳"
-            print(f"   Searching: {query}")
-
-            try:
-                params = {
-                    "engine": "google_maps",
-                    "q": query,
-                    "type": "search",
-                    "api_key": self.serp_key,
-                    "hl": "ko", "gl": "kr"
-                }
-                search = GoogleSearch(params)
-                results = search.get_dict()
-                local_results = results.get("local_results", [])
+            # 2. 카페 검색
+            cafes_picked = []
+            if cafe_per_day > 0:
+                needed_cafes = places_per_region * cafe_per_day
+                cafes_pool = self._search_places_by_regions([region], limit=int(needed_cafes * 3.0), keyword_suffix="카페")
                 
-                count = 0
-                for place in local_results:
-                    if count >= limit: break
-                    
-                    gps = place.get("gps_coordinates", {})
-                    if not gps.get("latitude"): continue
-                    
-                    place_obj = {
-                        "id": place.get("place_id"),
-                        "name": place.get("title"),
-                        "region": region,
-                        "lat": gps.get("latitude"),
-                        "lng": gps.get("longitude"),
-                        "rating": place.get("rating", 0.0),
-                        "reviews": place.get("reviews", 0), # [유지] reviews
-                        "type": "tourist_spot",
-                        "vicinity": place.get("address", ""),
-                        "photoUrl": place.get("thumbnail"), # [추가] thumbnail -> photoUrl 매핑
-                        
-                        # [주석 처리됨] 요청 필드 제외
-                        # "price": place.get("price"),
-                        # "phone_number": place.get("phone"),
-                        # "website": place.get("website"),
-                        
-                        # 내부 로직용 기본값
-                        "duration_min": 90, 
-                        "best_time": "Anytime"
+                cafes_picked = sorted(
+                    cafes_pool, 
+                    key=lambda x: (x.get('rating', 0), x.get('reviews', 0)), 
+                    reverse=True
+                )[:needed_cafes]
+                
+                for c in cafes_picked:
+                    c['type'] = 'cafe'
+
+            # 3. 합치기
+            region_places = tours_picked + cafes_picked
+            selected_places.extend(region_places)
+            
+            print(f"   👉 [{region}] 관광지 {len(tours_picked)}곳 + 카페 {len(cafes_picked)}곳 선택 완료")
+
+        if not selected_places:
+            print("❌ 장소를 찾지 못했습니다.")
+            return {}
+
+        # ---------------------------------------------------------
+        # 후처리
+        # ---------------------------------------------------------
+        daily_itinerary = self.segmenter.segment(selected_places, days)
+        optimized_itinerary = self.optimizer.optimize(daily_itinerary)
+        
+        return optimized_itinerary
+
+    def _search_places_by_regions(self, regions, limit=10, keyword_suffix="관광지"):
+        pool = []
+        
+        for region in regions:
+            query = f"{region} {keyword_suffix}" 
+            
+            cache_key = f"{query}_{limit}"
+            if cache_key in _RAM_CACHE:
+                pool.extend(_RAM_CACHE[cache_key])
+                continue
+
+            print(f"   🔍 검색 진행: {query} (목표: {limit}개)")
+            
+            # [핵심 수정] 페이지네이션 (Pagination) 로직 추가
+            # 원하는 개수(limit)를 채울 때까지 최대 3페이지(60개)까지 검색
+            start = 0
+            while len(pool) < limit and start < 60:
+                try:
+                    params = {
+                        "engine": "google_maps",
+                        "q": query,
+                        "type": "search",
+                        "api_key": self.serp_key,
+                        "hl": "ko", 
+                        "gl": "kr",
+                        "num": 20,      # 한 번에 20개
+                        "start": start  # 페이지 오프셋
                     }
                     
-                    if not any(p['id'] == place_obj['id'] for p in pool):
+                    search = GoogleSearch(params)
+                    results = search.get_dict()
+                    local_results = results.get("local_results", [])
+                    
+                    if not local_results:
+                        break # 더 이상 결과가 없으면 중단
+                    
+                    added_count_in_this_page = 0
+                    for place in local_results:
+                        # 목표 개수 다 채웠으면 중단
+                        if len(pool) >= limit: break
+                        
+                        gps = place.get("gps_coordinates", {})
+                        if not gps.get("latitude"): continue
+                        
+                        place_id = place.get("place_id")
+                        
+                        # 중복 방지
+                        if any(p['id'] == place_id for p in pool):
+                            continue
+
+                        place_obj = {
+                            "id": place_id,
+                            "name": place.get("title"),
+                            "region": region,
+                            "lat": gps.get("latitude"),
+                            "lng": gps.get("longitude"),
+                            "rating": place.get("rating", 0.0),
+                            "reviews": place.get("reviews", 0), 
+                            "type": "tourist_spot", 
+                            "vicinity": place.get("address", ""),
+                            "photoUrl": place.get("thumbnail"), 
+                            "duration_min": 90, 
+                            "best_time": "Anytime"
+                        }
+                        
                         pool.append(place_obj)
-                        count += 1
+                        added_count_in_this_page += 1
+                    
+                    print(f"      - offset {start}: {added_count_in_this_page}개 추가됨 (누적 {len(pool)}/{limit})")
+                    
+                    # 다음 페이지 준비 (20개씩 건너뜀)
+                    start += 20
+                    
+                except Exception as e:
+                    print(f"   ⚠️ 검색 오류 ({region}): {e}")
+                    break
             
-            except Exception as e:
-                print(f"   ⚠️ 검색 오류 ({region}): {e}")
+            # 결과 캐싱
+            _RAM_CACHE[cache_key] = pool
         
-        print(f"✅ 총 {len(pool)}개의 후보 장소 확보")
         return pool
