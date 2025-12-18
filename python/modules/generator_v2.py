@@ -5,10 +5,10 @@ from modules.recommender import PlaceRecommender
 from modules.enricher import PlaceProcessor
 from geopy.distance import geodesic
 import re
-from modules.optimizer_v2 import RouteOptimizer 
-
 # [수정 1] 새로 만든 optimizer_v2에서 클래스 가져오기 (이름이 RouteOptimizer라고 가정)
 from modules.optimizer_v2 import RouteOptimizer 
+from modules.clustering import DaySegmenter
+
 
 class CourseGeneratorV2(CourseGenerator):
     def __init__(self, gemini_key, serp_key, google_maps_key=None):
