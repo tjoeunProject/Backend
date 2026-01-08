@@ -50,7 +50,7 @@ RoutePick은 여행지를 하나하나 검색하고 동선을 직접 짜야 하�
 - Spring Security + JWT 기반 인증 구조 설계
 - Access Token을 이용한 API 접근 제어
 - 프론트엔드와 분리된 환경에서도 안정적인 인증 처리 구현
-
+- hashid를 사용하여 보안 강화화
 ---
 
 ### 3️⃣ AI 일정 생성 서비스 연동
@@ -101,13 +101,14 @@ RoutePick은 여행지를 하나하나 검색하고 동선을 직접 짜야 하�
 
 ## 🧱 시스템 아키텍처
 
-[Client Browser]
-↓
-[Frontend - S3]
-↓
-[Backend - Spring Boot (EC2)]
-↓
-[AI Service (Lambda / Python)]
-↓
-[External APIs / RDS]
+Client Browser  
+↓  
+Frontend (AWS S3)  
+↓  
+Backend (Spring Boot / EC2)  
+↓  
+AI Service (AWS Lambda / Python)  
+↓  
+External APIs / RDS  
+
 
