@@ -6,8 +6,14 @@ logs/
 python/.env
 *.pyc
 
+
 sts/SmartRoutePlanner/src/main/resources/application.properties
 sts/SmartRoutePlanner/src/main/resources/application.properties
 *.properties
 /sts/SmartRoutePlanner/src/main/resources
 *.pyc
+
+# Track reproducible build and test configuration; local application secrets remain ignored.
+!/sts/SmartRoutePlanner/gradle/wrapper/gradle-wrapper.properties
+!/sts/SmartRoutePlanner/src/test/resources/
+!/sts/SmartRoutePlanner/src/test/resources/application-test.properties
