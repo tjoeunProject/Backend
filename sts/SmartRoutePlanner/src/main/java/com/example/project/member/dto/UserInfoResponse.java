@@ -18,4 +18,9 @@ public class UserInfoResponse {
     private Integer age;
     private String gender;
     private Role role;
+    public static UserInfoResponse from(com.example.project.member.domain.TravelUser user) {
+        return new UserInfoResponse(user.getId(), user.getNickname(), user.getEmail(),
+                user.getAge(), user.getGender(), user.getRole());
+    }
 }
+

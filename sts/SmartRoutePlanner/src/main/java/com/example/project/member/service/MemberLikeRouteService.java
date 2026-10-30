@@ -17,22 +17,25 @@ import com.example.project.route.domain.Route;
 import com.example.project.route.repository.RouteRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.example.project.security.config.CurrentUser;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class MemberLikeRouteService {
 
     private final MemberLikeRouteRepository likeRepo;
     private final TravelUserRepository userRepo;
     private final RouteRepository routeRepo;
+    private final CurrentUser currentUser;
 
     // ============================================================
     // 좋아요 추가
     // ============================================================
     public MemberLikeRoute like(Integer userId, Long routeId) {
 
-        TravelUser user = userRepo.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        TravelUser user = currentUser.requireId(userId);
 
         Route route = routeRepo.findById(routeId)
                 .orElseThrow(RouteNotFoundException::new);
@@ -54,6 +57,7 @@ public class MemberLikeRouteService {
     // 좋아요 취소
     // ============================================================
     public void unlike(Integer userId, Long routeId) {
+        currentUser.requireId(userId);
 
         if (!likeRepo.existsByUserIdAndRouteId(userId, routeId)) {
             throw new LikeNotFoundException();
@@ -67,8 +71,7 @@ public class MemberLikeRouteService {
     // ============================================================
     public List<MemberLikeRoute> getLikedRoutes(Integer userId) {
 
-        TravelUser user = userRepo.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        TravelUser user = currentUser.requireId(userId);
 
         return likeRepo.findByUser(user);
     }
@@ -78,8 +81,7 @@ public class MemberLikeRouteService {
     // ============================================================
     public List<LikeRouteResponse> getLikedRoutesDto(Integer userId) {
 
-        TravelUser user = userRepo.findById(userId)
-                .orElseThrow(UserNotFoundException::new);
+        TravelUser user = currentUser.requireId(userId);
 
         List<MemberLikeRoute> likes = likeRepo.findByUser(user);
 

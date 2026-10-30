@@ -35,11 +35,11 @@ public class TravelUserController {
     // 2) 프로필 수정
     // =========================
     @PutMapping("/profile")
-    public ResponseEntity<TravelUser> updateProfile(
+    public ResponseEntity<UserInfoResponse> updateProfile(
             Principal principal,
             @RequestBody UpdateProfileRequest req) {
 
-        return ResponseEntity.ok(service.updateProfile(principal, req));
+        return ResponseEntity.ok(UserInfoResponse.from(service.updateProfile(principal, req)));
     }
 
     // =========================
@@ -76,7 +76,7 @@ public class TravelUserController {
     // 6) 좋아요한 루트 목록
     // =========================
     @GetMapping("/likes")
-    public ResponseEntity<List<MemberLikeRoute>> getMyLikedRoutes(Principal principal) {
+    public ResponseEntity<List<com.example.project.member.dto.LikeRouteResponse>> getMyLikedRoutes(Principal principal) {
         return ResponseEntity.ok(service.getMyLikedRoutes(principal));
     }
 
@@ -84,7 +84,7 @@ public class TravelUserController {
     // 7) 내가 만든 루트 목록
     // =========================
     @GetMapping("/routes")
-    public ResponseEntity<List<Route>> getMyCreatedRoutes(Principal principal) {
+    public ResponseEntity<List<com.example.project.route.dto.RouteListItemDto>> getMyCreatedRoutes(Principal principal) {
         return ResponseEntity.ok(service.getMyCreatedRoutes(principal));
     }
 }

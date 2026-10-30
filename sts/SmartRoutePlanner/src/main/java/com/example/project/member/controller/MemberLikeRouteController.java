@@ -20,7 +20,7 @@ public class MemberLikeRouteController {
             @PathVariable Integer userId,
             @PathVariable Long routeId
     ) {
-        return ResponseEntity.ok(likeService.like(userId, routeId));
+        return ResponseEntity.ok(com.example.project.member.dto.LikeRouteResponse.from(likeService.like(userId, routeId)));
     }
 
     // 좋아요 취소
@@ -36,6 +36,6 @@ public class MemberLikeRouteController {
     // 좋아요 목록 조회
     @GetMapping("/likes")
     public ResponseEntity<?> getLikedRoutes(@PathVariable Integer userId) {
-        return ResponseEntity.ok(likeService.getLikedRoutes(userId));
+        return ResponseEntity.ok(likeService.getLikedRoutesDto(userId));
     }
 }

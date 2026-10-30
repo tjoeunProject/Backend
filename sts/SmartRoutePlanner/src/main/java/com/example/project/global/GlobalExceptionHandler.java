@@ -13,6 +13,18 @@ import lombok.Data;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(Exception e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(false,
+                "Resource ownership required", "ACCESS_DENIED"));
+    }
+
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthentication(Exception e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(false,
+                "Authentication required", "UNAUTHENTICATED"));
+    }
+
     // -------------------------------
     // 1) 커스텀 예외 처리
     // -------------------------------
