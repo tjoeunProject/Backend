@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.project.member.domain.TravelUser;
-import com.example.project.member.repository.TravelUserRepository;
 import com.example.project.place.domain.Place;
 import com.example.project.place.service.PlaceService;
 import com.example.project.route.domain.Route;
@@ -22,6 +21,7 @@ import com.example.project.route.dto.RouteDetailResponseDto;
 import com.example.project.route.dto.RouteListItemDto;
 import com.example.project.route.repository.RoutePlaceRepository;
 import com.example.project.route.repository.RouteRepository;
+import com.example.project.security.config.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,8 +36,8 @@ public class RouteService {
 
     private final RouteRepository routeRepository;
     private final RoutePlaceRepository routePlaceRepository;
-    private final TravelUserRepository travelUserRepository;
     private final PlaceService placeService;
+    private final CurrentUser currentUser;
 
     /**
      * 일정 생성
@@ -45,9 +45,10 @@ public class RouteService {
     @Transactional
     public Long createRoute(RouteCreateRequestDto dto) {
 
-        TravelUser user = travelUserRepository.findById(dto.getMemberId().intValue())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("회원 없음 id=" + dto.getMemberId()));
+        TravelUser user = currentUser.require();
+        if (dto.getMemberId() != null && dto.getMemberId().longValue() != user.getId().longValue()) {
+            throw new org.springframework.security.access.AccessDeniedException("Resource ownership required");
+        }
 
         Route route = new Route();
         route.setUser(user);
@@ -201,6 +202,8 @@ public class RouteService {
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
 
+        currentUser.requireId(route.getUser().getId());
+
         route.setTitle(dto.getTitle());
         route.setStartDate(dto.getStartDate());
         route.setEndDate(dto.getEndDate());
@@ -238,6 +241,9 @@ public class RouteService {
      */
     @Transactional
     public void deleteRoute(Long routeId) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        currentUser.requireId(route.getUser().getId());
         routePlaceRepository.deleteByRouteId(routeId);
         routeRepository.deleteById(routeId);
     }

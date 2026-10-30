@@ -1,0 +1,37 @@
+{
+  "scenario": "legitimate owner, empty-day itinerary, 20 creates per batch",
+  "concurrency": 1,
+  "external_calls": 0,
+  "warmup_batches": 3,
+  "measured_batches": 7,
+  "order": "baseline then candidate, separate JVMs; no statistical independence claim",
+  "results": {
+    "baseline": {
+      "samples_ms_per_request": [
+        3.036515,
+        2.9892600000000003,
+        2.92428,
+        2.598705,
+        2.593435,
+        3.12657,
+        2.3740200000000002
+      ],
+      "median_ms": 2.92428
+    },
+    "candidate": {
+      "samples_ms_per_request": [
+        4.262425,
+        4.48405,
+        4.7348300000000005,
+        4.200735,
+        3.85353,
+        4.302395,
+        3.4665399999999997
+      ],
+      "median_ms": 4.262425
+    }
+  },
+  "budget": "candidate median <= baseline*1.5 + 5ms",
+  "budget_passed": true,
+  "note": "security fix overhead; no speedup claim; H2 and MockMvc, not production Oracle/network"
+}
