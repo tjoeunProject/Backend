@@ -40,7 +40,7 @@
 | G5 Python 안정성 | [Backend #58](https://github.com/tjoeunProject/Backend/pull/58) | 요청된 코드 구현·Python21개 통과. 인증/예산/단계별 timeout/본문/nearby 제한과 SDK 교체. 실제 공급자·운영 검증은 미실행 |
 | G6 일정 성능 | [Backend #57](https://github.com/tjoeunProject/Backend/pull/57) | 외부 조회/원자 저장 분리 구현. Java16개/인증 합성23개, Python1개 통과. 실제 Oracle는 미검증 |
 
-모두 초안·미병합이며 자동 병합하지 않는다. 테스트 개수는 PR별 실행 결과로, 공통 검사를 포함하므로 합산하지 않는다. 코드 구현·로컬 통과와 실제 배포 완료를 구분한다. G5/G6의 요청된 코드 범위도 구현했다. 실제 운영 검증 완료와 구분하며 [최종 보고서](docs/verification/COMPLETION-20261102.md)에 차단 사항을 남긴다.
+모두 초안·미병합이며 자동 병합하지 않는다. 테스트 개수는 PR별 실행 결과로, 공통 검사를 포함하므로 합산하지 않는다. 코드 구현·로컬 통과와 실제 배포 완료를 구분한다. G5/G6의 요청된 코드 범위도 구현했다. 실제 운영 검증 완료와 구분하며 [최종 보고서](verification/COMPLETION-20261102.md)에 차단 사항을 남긴다.
 
 ### 의존 관계와 처리 순서
 
