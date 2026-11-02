@@ -1,3 +1,4 @@
+from modules.request_guard import call_provider, RequestLimitExceeded
 import math
 from serpapi import GoogleSearch
 from modules.optimizer import RouteOptimizer
@@ -113,8 +114,8 @@ class CourseGenerator:
                         "start": start  # 페이지 오프셋
                     }
                     
-                    search = GoogleSearch(params, timeout=15)
-                    results = search.get_dict()
+                    search = GoogleSearch(params, timeout=5)
+                    results = call_provider(search.get_dict)
                     local_results = results.get("local_results", [])
                     
                     if not local_results:
@@ -156,6 +157,10 @@ class CourseGenerator:
                     
                     # 다음 페이지 준비 (20개씩 건너뜀)
                     start += 20
+                    
+                except RequestLimitExceeded:
+                    
+                    raise
                     
                 except Exception as e:
                     print("Place search unavailable")

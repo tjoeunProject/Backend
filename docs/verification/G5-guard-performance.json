@@ -1,0 +1,41 @@
+{
+  "scenario": "bounded worker CPU fixture",
+  "python": "3.12.14",
+  "concurrency": 1,
+  "calls": 0,
+  "warmup": 20,
+  "batches": 7,
+  "requests_per_batch": 20,
+  "order": "AB/BA",
+  "ms_per_operation": {
+    "baseline": [
+      0.012570000035339035,
+      0.007300000015675323,
+      0.007235000066430075,
+      0.009099999988393392,
+      0.009789999967324547,
+      0.007565000032627722,
+      0.007619999996677507
+    ],
+    "guarded": [
+      0.1514800000222749,
+      0.17055500002243207,
+      0.13574499998867395,
+      0.13262000002214336,
+      0.1679349999903934,
+      0.15182500001174049,
+      0.1508049999756622
+    ]
+  },
+  "median_ms": {
+    "baseline": 0.007619999996677507,
+    "guarded": 0.1514800000222749
+  },
+  "budget": "guarded <= baseline * 2 + 2ms",
+  "quality": "every result == 499500; zero errors",
+  "verdict": "PASS",
+  "limitations": [
+    "No network/production throughput inference",
+    "Backend authentication adds a bounded extra HTTP call; no comparable authenticated baseline"
+  ]
+}

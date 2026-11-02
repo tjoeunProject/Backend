@@ -1,8 +1,9 @@
+from modules.request_guard import call_provider, RequestLimitExceeded
 import json
 import time
 import re
-import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
+from google import genai
+from google.genai import types, errors
 
 class PlaceProcessor:
     def __init__(self, api_key):
@@ -10,10 +11,11 @@ class PlaceProcessor:
         self.model = None
         if self.api_key:
             try:
-                genai.configure(api_key=self.api_key)
-                self.model = genai.GenerativeModel('gemini-2.5-flash-lite') 
+                self.model = genai.Client(api_key=self.api_key, http_options=types.HttpOptions(timeout=5000, retry_options=types.HttpRetryOptions(attempts=1)))
+            except RequestLimitExceeded:
+                raise
             except Exception as e:
-                print(f"⚠️ Gemini 초기화 실패: {e}")
+                print(f"⚠️ Gemini 초기화 실패: {type(e).__name__}")
 
     def process(self, raw_data_list):
         # 1. 데이터 구조화
@@ -27,11 +29,11 @@ class PlaceProcessor:
         for raw in raw_list:
             lat = raw.get('lat')
             lng = raw.get('lng')
-            if not lat and 'gps_coordinates' in raw:
+            if lat is None and 'gps_coordinates' in raw:
                 lat = raw['gps_coordinates'].get('latitude')
                 lng = raw['gps_coordinates'].get('longitude')
             
-            if not lat or not lng: continue
+            if lat is None or lng is None: continue
 
             item = {
                 "id": raw.get('id') or raw.get('place_id'),
@@ -54,7 +56,7 @@ class PlaceProcessor:
         if not self.model or not places:
             return places
 
-        max_retries = 3
+        max_retries = 2
         retry_count = 0
         
         place_names = [p['name'] for p in places]
@@ -76,9 +78,9 @@ class PlaceProcessor:
         while retry_count < max_retries:
             try:
                 # 기본적으로 2초는 무조건 대기 (과부하 방지)
-                time.sleep(2)
+                time.sleep(0.1)
                 
-                response = self.model.generate_content(prompt)
+                response = call_provider(self.model.models.generate_content, model="gemini-2.5-flash-lite", contents=prompt)
                 text = response.text.replace("```json", "").replace("```", "").strip()
                 ai_data = json.loads(text)
 
@@ -92,8 +94,9 @@ class PlaceProcessor:
                 # 성공하면 루프 종료
                 break 
 
-            except ResourceExhausted as e:
+            except errors.APIError as e:
                 # 429 에러(한도 초과) 발생 시
+                if e.code not in (429, 503): break
                 retry_count += 1
                 wait_time = 30 # 기본 대기 30초
                 
@@ -107,10 +110,14 @@ class PlaceProcessor:
                 print(f"⏳ [API 한도 초과] {wait_time:.1f}초 대기 후 재시도합니다... ({retry_count}/{max_retries})")
                 
                 # 여기서 실제로 기다림!
-                time.sleep(wait_time)
+                time.sleep(min(wait_time, 1))
+                
+            except RequestLimitExceeded:
+                
+                raise
                 
             except Exception as e:
-                print(f"❌ AI 분석 중 알 수 없는 오류 (기본값 사용): {e}")
+                print(f"❌ AI 분석 중 알 수 없는 오류 (기본값 사용): {type(e).__name__}")
                 break 
 
         return places

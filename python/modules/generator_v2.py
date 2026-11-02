@@ -1,3 +1,4 @@
+from modules.request_guard import call_provider, RequestLimitExceeded
 import math
 from geopy.distance import geodesic
 from modules.generator import CourseGenerator
@@ -248,7 +249,7 @@ class CourseGeneratorV2(CourseGenerator):
         try:
             radius_meter = int(dist_limit * 1000) + 2000
             
-            response = self.recommender.gmaps.places(
+            response = call_provider(self.recommender.gmaps.places,
                 query=keyword,
                 location=(location['lat'], location['lng']),
                 radius=radius_meter, 
@@ -273,6 +274,8 @@ class CourseGeneratorV2(CourseGenerator):
                     used_ids.add(candidate.get('place_id'))
                     return candidate
             return None
+        except RequestLimitExceeded:
+            raise
         except Exception:
             return None
 

@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from modules.service_auth import authorize
+from modules.body_limit import BodyLimit
+from modules.request_guard import guarded, RequestLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, field_validator
 import uvicorn
@@ -34,7 +37,8 @@ else: print("❌ GOOGLE_MAPS_API_KEY 없음 (.env 변수명 확인 필요)")
 print("="*40 + "\n")
 
 
-app = FastAPI()
+app = FastAPI(dependencies=[Depends(authorize)])
+app.add_middleware(BodyLimit)
 
 app.add_middleware(
     CORSMiddleware,
@@ -95,10 +99,21 @@ class OptimizeRequest(BaseModel):
         return values
 
 
+class NearbyRequest(BaseModel):
+    places: list[list[dict]] = Field(min_length=1, max_length=14)
+    @field_validator('places')
+    @classmethod
+    def bounded_places(cls, values):
+        flat = [p for day in values for p in day]
+        if not flat or len(flat) > 200: raise ValueError('Provide one to 200 places')
+        OptimizeRequest.valid_coordinates(flat)
+        return values
+
 # =========================================================
 #  1. Generate API (AI 일정 생성 - 메인)
 # =========================================================
 @app.post("/generate")
+@guarded
 def generate_course(request: TripRequest):
     print("Generate request accepted")
     
@@ -118,6 +133,8 @@ def generate_course(request: TripRequest):
         print("✅ 최종 일정 생성 완료 (V2)")
         return result
 
+    except RequestLimitExceeded:
+        raise
     except Exception as e:
         print("Generation provider failed")
         raise HTTPException(status_code=502, detail="Generation unavailable") from None
@@ -127,6 +144,7 @@ def generate_course(request: TripRequest):
 #  2. Optimize API (재최적화 기능)
 # =========================================================
 @app.post("/optimize")
+@guarded
 def optimize(data: OptimizeRequest):
     places = data.places
     days = data.days
@@ -154,8 +172,9 @@ def optimize(data: OptimizeRequest):
 #  3. Nearby API (주변 맛집 수동 검색)
 # =========================================================
 @app.post("/nearby")
-def nearby(data: dict):
-    itinerary_list = data.get("places", [])
+@guarded
+def nearby(data: NearbyRequest):
+    itinerary_list = data.places
     
     if not itinerary_list:
         return {"error": "No itinerary data received"}
@@ -179,6 +198,8 @@ def nearby(data: dict):
             final_recommendations.append(rec)
 
         return {"recommendations": final_recommendations}
+    except RequestLimitExceeded:
+        raise
     except Exception as e:
         print("Nearby provider failed")
         raise HTTPException(status_code=502, detail="Nearby search unavailable") from None

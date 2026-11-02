@@ -6,6 +6,23 @@ from modules.generator_v2 import CourseGeneratorV2
 from modules.place_cache import PlaceCache
 
 class GeneratorIsolation(unittest.TestCase):
+    def test_two_interleaved_dining_requests_are_isolated(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        barrier=Barrier(2)
+        generator=CourseGeneratorV2(None,'fixture')
+        class Maps:
+            def places(self,**kwargs):
+                barrier.wait(timeout=2)
+                return {'results':[{'place_id':'meal','name':'Meal','geometry':{'location':{'lat':37,'lng':127}}}]}
+        generator.recommender.gmaps=Maps()
+        def request():
+            return generator._insert_dining_simulation([{'id':'tour','name':'Tour','lat':37,'lng':127,'duration_min':180}],[],1,set())
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            first,second=pool.submit(request),pool.submit(request)
+            self.assertEqual([p['name'] for p in first.result()],['Tour','Meal'])
+            self.assertEqual([p['name'] for p in second.result()],['Tour','Meal'])
+
     def test_cache_ttl_capacity_and_copy_boundaries(self):
         clock=[0]
         cache=PlaceCache(maxsize=2,ttl=10,clock=lambda:clock[0])

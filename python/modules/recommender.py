@@ -1,3 +1,4 @@
+from modules.request_guard import call_provider, RequestLimitExceeded, BudgetedSession
 import os
 from serpapi import GoogleSearch
 import googlemaps
@@ -29,9 +30,11 @@ class PlaceRecommender:
         self.gmaps = None
         if self.maps_key:
             try:
-                self.gmaps = googlemaps.Client(key=self.maps_key)
+                self.gmaps = googlemaps.Client(key=self.maps_key, timeout=5, retry_timeout=5, retry_over_query_limit=False, requests_session=BudgetedSession())
+            except RequestLimitExceeded:
+                raise
             except Exception as e:
-                print(f"⚠️ Google Maps Client 초기화 실패: {e}")
+                print(f"⚠️ Google Maps Client 초기화 실패: {type(e).__name__}")
 
     # [NEW] 2. 태그 분석 헬퍼 함수 추가
     def _get_keyword_from_tags(self, tags, base_keyword="맛집"):
@@ -67,8 +70,8 @@ class PlaceRecommender:
                 "hl": "ko", "gl": "kr"
             }
 
-            search = GoogleSearch(params)
-            results = search.get_dict()
+            search = GoogleSearch(params, timeout=5)
+            results = call_provider(search.get_dict)
 
             place_data = None
             if "local_results" in results and results["local_results"]:
@@ -87,6 +90,8 @@ class PlaceRecommender:
                     "thumbnail": place_data.get("thumbnail"),
                     "type": "restaurant" 
                 }
+        except RequestLimitExceeded:
+            raise
         except Exception:
             return None
         return None
@@ -136,8 +141,8 @@ class PlaceRecommender:
                 }
 
                 try:
-                    search = GoogleSearch(params)
-                    results = search.get_dict()
+                    search = GoogleSearch(params, timeout=5)
+                    results = call_provider(search.get_dict)
                     local_results = results.get("local_results", [])
 
 
@@ -198,10 +203,12 @@ class PlaceRecommender:
                             photo_ref = None
                             if self.gmaps and real_place_id:
                                 try:
-                                    place_details = self.gmaps.place(place_id=real_place_id, fields=['photo'])
+                                    place_details = call_provider(self.gmaps.place, place_id=real_place_id, fields=['photo'])
                                     photos = place_details.get('result', {}).get('photos', [])
                                     if photos:
                                         photo_ref = photos[0].get('photo_reference')
+                                except RequestLimitExceeded:
+                                    raise
                                 except Exception: pass
                             restaurant_info['photo_reference'] = photo_ref
 
@@ -226,8 +233,12 @@ class PlaceRecommender:
                     else:
                         print(f"   ❌ [{day_key} {meal_label}] '{place['name']}' 근처 맛집 검색 실패")
 
+                except RequestLimitExceeded:
+
+                    raise
+
                 except Exception as e:
-                    print(f"   🚨 검색 시스템 오류 ({place['name']}): {e}")
+                    print(f"   🚨 검색 시스템 오류 ({place['name']}): {type(e).__name__}")
 
         return flat_dining_list
 
@@ -241,8 +252,8 @@ class PlaceRecommender:
                 "api_key": self.api_key,
                 "hl": "ko", "gl": "kr"
             }
-            search = GoogleSearch(params)
-            res = search.get_dict().get("place_results")
+            search = GoogleSearch(params, timeout=5)
+            res = call_provider(search.get_dict).get("place_results")
 
             if not res: return {}
 
@@ -262,5 +273,7 @@ class PlaceRecommender:
                 "website": res.get("website"),
                 "phone_number": res.get("phone")
             }
+        except RequestLimitExceeded:
+            raise
         except Exception:
             return {}

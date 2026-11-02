@@ -1,6 +1,6 @@
 {
   "scenario": "20-place hot cache lookup",
-  "runtime": "Windows / Python 3.13",
+  "runtime": "Windows / Python 3.12.14",
   "concurrency": 1,
   "external_calls": 0,
   "provider": "fixture Search",
@@ -47,5 +47,6 @@
     "Defensive-copy correctness adds CPU work",
     "No speedup claim",
     "Provider latency and concurrent full itinerary load unmeasured"
-  ]
+  ],
+  "metadata_correction": "Python version checked from actual executable; initial 3.13 label was incorrect"
 }

@@ -1,0 +1,19 @@
+{
+  "scope": "two selected critical Python decisions; in-memory mutation only",
+  "mutants": [
+    {
+      "mutation": "remove budget enforcement",
+      "detected": true,
+      "errors": 0
+    },
+    {
+      "mutation": "bypass authentication",
+      "detected": true,
+      "errors": 0
+    }
+  ],
+  "verdict": "PASS: both intentional defects detected",
+  "limitations": [
+    "Not exhaustive mutation coverage"
+  ]
+}
