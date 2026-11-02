@@ -44,10 +44,10 @@
 
 ### 의존 관계와 처리 순서
 
-- Backend: main → G1 #54 → G2 #55 → G3 #56 / G6 #57. G3와 G6는 G2에서 각각 갈라진 별도 PR이다.
-- Python G5 #58은 main 기반으로 독립 진행한다.
-- Frontend: fe_main → G4 #73 → G3 #74. 두 저장소의 G3를 함께 검토하되 PR은 별개다.
-- 선행 PR 병합 후 후행 base를 기본 브랜치로 바꾸며, 이 문서의 병합을 코드 의존성으로 만들지 않는다.
+- Backend: main → integration/routepick-improvements → G1 #54 → G2 #55 → G3 #56 / G6 #57. G3와 G6는 G2에서 각각 갈라진 별도 PR이다.
+- Python G5 #58의 병합 대상은 integration/routepick-improvements이며 독립 진행한다.
+- Frontend: fe_main → integration/routepick-improvements → G4 #73 → G3 #74. 두 저장소의 G3를 함께 검토하되 PR은 별개다.
+- 선행 PR을 통합 브랜치에 병합한 후 후행 base도 통합 브랜치로 바꾸며, 이 문서의 병합을 코드 의존성으로 만들지 않는다.
 
 각 PR 본문과 docs/verification 또는 trip/docs에 실제 red/green, 성능 예산·원시값 또는 비교 차단 사유를 기록했다. Oracle·실제 공급자·브라우저 E2E는 완료한 로컬 검증과 구분한다. 사용자 미추적 파일과 작업 중 변경은 업로드하지 않았다.
 
@@ -75,3 +75,13 @@
 ## 최종 보고서 — 2026-11-02
 
 [수정·검증 보고서](verification/COMPLETION-20261102.md). Java 합성23, Python21, 프론트18, ORTools1, 실제 로컬 인증4계약 통과. 공통 검사를 포함해 개수를 합산하지 않는다. G5와 G6의 남은 코드 수정은 PR에 반영했으며, Oracle migration/실제 공급자/로그인 지도 browser E2E는 미검증이다. 초안 PR을 자동 병합하지 않는다.
+
+
+## 통합 브랜치 운영
+
+사용자 승인으로 양쪽 저장소에 `integration/routepick-improvements`를 생성했다. Backend는 main@22e209745faaf8f40c6e238bbaf168aed59ca7b1, Frontend는 fe_main@0d0f4cd29387fdf7f3f7937b2021cdd1efa54422에서 시작한다.
+
+- Backend #53·#54·#58, Frontend #73의 base는 통합 브랜치다.
+- Backend #55는 #54, #56·#57은 #55, Frontend #74는 #73을 선행 base로 유지한다. 선행 PR이 통합 브랜치에 병합되면 후행 base를 통합 브랜치로 재지정한다.
+- 이번 작업은 브랜치 생성·PR 대상/문서 조정뿐이며 PR 병합이나 기본 브랜치 변경은 하지 않았다.
+- 통합 브랜치에서 검증 후 기본 브랜치로 가는 최종 PR은 별도 검토한다. 자동 병합하지 않는다.
