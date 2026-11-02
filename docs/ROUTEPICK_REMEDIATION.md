@@ -35,12 +35,12 @@
 | --- | --- | --- |
 | G1 빌드·테스트 | [Backend #54](https://github.com/tjoeunProject/Backend/pull/54) | Java 환경 테스트 2개 통과 |
 | G2 권한·응답 | [Backend #55](https://github.com/tjoeunProject/Backend/pull/55) | Java 10개 통과; G1 기반 |
-| G3 인증·토큰·ID | [Backend #56](https://github.com/tjoeunProject/Backend/pull/56), [Frontend #74](https://github.com/tjoeunProject/Frontend/pull/74) | Java 17개 / 프론트 16개 통과. Oracle 토큰 컬럼·재로그인 및 실제 브라우저 확인 필요 |
+| G3 인증·토큰·ID | [Backend #56](https://github.com/tjoeunProject/Backend/pull/56), [Frontend #74](https://github.com/tjoeunProject/Frontend/pull/74) | Java 17개 / 최종 프론트18개, 인증 합성 Java23개 통과. Oracle 토큰 컬럼·재로그인 및 실제 브라우저 확인 필요 |
 | G4 지도 경로 | [Frontend #73](https://github.com/tjoeunProject/Frontend/pull/73) | RP-06·07 구현, 테스트 10개 / Vite build 통과; 실제 지도 통합 미검증 |
-| G5 Python 안정성 | [Backend #58](https://github.com/tjoeunProject/Backend/pull/58) | 테스트 9개 통과. 서비스 인증·호출 예산·전체 deadline·nearby 중첩 제한은 남음 |
-| G6 일정 성능 | [Backend #57](https://github.com/tjoeunProject/Backend/pull/57) | Java 11개 / Python 1개 통과. SQL 37→2, 거리 fixture 29.74→17.18ms. 외부 호출/쓰기 트랜잭션 분리는 남음 |
+| G5 Python 안정성 | [Backend #58](https://github.com/tjoeunProject/Backend/pull/58) | 요청된 코드 구현·Python21개 통과. 인증/예산/단계별 timeout/본문/nearby 제한과 SDK 교체. 실제 공급자·운영 검증은 미실행 |
+| G6 일정 성능 | [Backend #57](https://github.com/tjoeunProject/Backend/pull/57) | 외부 조회/원자 저장 분리 구현. Java16개/인증 합성23개, Python1개 통과. 실제 Oracle는 미검증 |
 
-모두 초안·미병합이며 자동 병합하지 않는다. 테스트 개수는 PR별 실행 결과로, 공통 검사를 포함하므로 합산하지 않는다. 코드 구현·로컬 통과와 실제 배포 완료를 구분한다. G5/G6의 남은 항목 때문에 전체 수정 완료로 표시하지 않는다.
+모두 초안·미병합이며 자동 병합하지 않는다. 테스트 개수는 PR별 실행 결과로, 공통 검사를 포함하므로 합산하지 않는다. 코드 구현·로컬 통과와 실제 배포 완료를 구분한다. G5/G6의 요청된 코드 범위도 구현했다. 실제 운영 검증 완료와 구분하며 [최종 보고서](docs/verification/COMPLETION-20261102.md)에 차단 사항을 남긴다.
 
 ### 의존 관계와 처리 순서
 
@@ -70,3 +70,8 @@
 좌표 기대값 출처: [Google Encoded Polyline 문서](https://developers.google.com/maps/documentation/utilities/polylinealgorithm).
 
 최신 코드 PR과 미완료 항목은 위 2026-11-02 현황을 기준으로 확인한다.
+
+
+## 최종 보고서 — 2026-11-02
+
+[수정·검증 보고서](verification/COMPLETION-20261102.md). Java 합성23, Python21, 프론트18, ORTools1, 실제 로컬 인증4계약 통과. 공통 검사를 포함해 개수를 합산하지 않는다. G5와 G6의 남은 코드 수정은 PR에 반영했으며, Oracle migration/실제 공급자/로그인 지도 browser E2E는 미검증이다. 초안 PR을 자동 병합하지 않는다.
