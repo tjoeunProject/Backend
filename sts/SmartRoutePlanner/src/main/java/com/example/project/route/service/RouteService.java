@@ -174,20 +174,16 @@ public class RouteService {
         List<Route> routes =
                 routeRepository.findAllByUser_Id(memberId.intValue());
 
-     // Stream map을 사용하여 각 Route마다 첫 번째 장소를 찾아서 DTO 생성
-        return routes.stream()
-                .map(route -> {
-                    // 1. 해당 루트의 첫 번째 장소(RoutePlace) 조회
-                    RoutePlace firstRp = routePlaceRepository
-                            .findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(route.getId())
-                            .orElse(null);
-
-                    // 2. RoutePlace에서 Place(장소 원본) 꺼내기 (없으면 null)
-                    Place firstPlace = (firstRp != null) ? firstRp.getPlace() : null;
-
-                    // 3. DTO 생성 (Route + Place 정보)
-                    return new RouteListItemDto(route, firstPlace);
-                })
+        // Keep each IN list below Oracle's 1000-expression limit.
+        java.util.Map<Long, Place> firstPlaces = new java.util.HashMap<>();
+        var ids = routes.stream().map(Route::getId).toList();
+        for (int offset = 0; offset < ids.size(); offset += 500) {
+            var batch = ids.subList(offset, Math.min(offset + 500, ids.size()));
+            for (RoutePlace rp : routePlaceRepository.findFirstPlacesForRoutes(batch)) {
+                firstPlaces.put(rp.getRoute().getId(), rp.getPlace());
+            }
+        }
+        return routes.stream().map(route -> new RouteListItemDto(route, firstPlaces.get(route.getId())))
                 .collect(Collectors.toList());
     }
 
