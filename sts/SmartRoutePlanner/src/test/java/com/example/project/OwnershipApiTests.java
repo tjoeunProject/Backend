@@ -27,8 +27,12 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Transactional
-class OwnershipApiTests {
+class OwnershipApiTests {    @Autowired com.example.project.route.repository.RouteRepository cleanupRoutes;
+    @Autowired com.example.project.route.repository.RoutePlaceRepository cleanupLinks;
+    @Autowired com.example.project.member.repository.MemberLikeRouteRepository cleanupLikes;
+    @org.junit.jupiter.api.AfterEach void cleanupCommittedFixtures() {
+        cleanupLikes.deleteAll(); cleanupLinks.deleteAll(); cleanupRoutes.deleteAll(); users.deleteAll();
+    }
     @Autowired MockMvc mvc;
     @Autowired TravelUserRepository users;
     @Autowired RouteRepository routes;

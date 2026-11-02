@@ -1,6 +1,6 @@
 {
   "scenario": "20 collinear tourist spots / one day",
-  "runtime": "Windows / Python 3.13 / ORTools 9.12.4544 / geopy 2.5.0",
+  "runtime": "Windows / Python 3.12.14 / ORTools 9.12.4544 / geopy 2.5.0",
   "concurrency": 1,
   "external_calls": 0,
   "order": "alternating AB/BA",
@@ -45,5 +45,6 @@
   "limitations": [
     "Fixture only; not real road travel times",
     "Operation reduction does not imply equal end-to-end speedup"
-  ]
+  ],
+  "metadata_correction": "Python version checked from actual executable; initial 3.13 label was incorrect"
 }

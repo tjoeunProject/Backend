@@ -15,4 +15,9 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
      * TravelUser의 PK는 Integer라서 Integer 타입을 사용한다.
      */
     List<Route> findAllByUser_Id(Integer memberId);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select r from Route r where r.id = :id")
+    java.util.Optional<Route> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+
 }

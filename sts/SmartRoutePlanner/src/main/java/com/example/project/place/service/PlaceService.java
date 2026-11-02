@@ -219,6 +219,25 @@ public class PlaceService {
                 });
     }
 
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    public PlaceRequestDto preparePlace(String placeId) {
+        if (placeRepository.findOptionalByGooglePlaceId(placeId).isPresent()) return null;
+        PlaceRequestDto dto = googlePlacesClient.fetchPlaceDetails(placeId);
+        if (dto == null || !placeId.equals(dto.getGooglePlaceId())
+                || !Double.isFinite(dto.getLat()) || !Double.isFinite(dto.getLng())
+                || Math.abs(dto.getLat()) > 90 || Math.abs(dto.getLng()) > 180) {
+            throw new PlaceApiException("Invalid place details");
+        }
+        return dto;
+    }
+
+    public Place savePreparedPlace(String placeId, PlaceRequestDto dto) {
+        return placeRepository.findOptionalByGooglePlaceId(placeId).orElseGet(() -> {
+            if (dto == null) throw new PlaceApiException("Prepared place no longer available");
+            return savePlace(dto);
+        });
+    }
+
     /**
      * 타입 기반 인기 장소 조회
      * rating과 userRatingsTotal(리뷰 수) 기준 상위 limit개 조회

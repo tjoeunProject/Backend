@@ -38,11 +38,23 @@ public class RouteService {
     private final RoutePlaceRepository routePlaceRepository;
     private final PlaceService placeService;
     private final CurrentUser currentUser;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    private Map<String, com.example.project.place.dto.PlaceRequestDto> preparePlaces(RouteCreateRequestDto dto) {
+        Map<String, com.example.project.place.dto.PlaceRequestDto> prepared = new LinkedHashMap<>();
+        for (var day : dto.getPlaces()) for (var place : day) {
+            String id = place.getPlaceId();
+            if (id == null || id.isBlank()) throw new IllegalArgumentException("Place ID required");
+            if (!prepared.containsKey(id)) prepared.put(id, placeService.preparePlace(id));
+        }
+        return prepared;
+    }
+
 
     /**
      * 일정 생성
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public Long createRoute(RouteCreateRequestDto dto) {
 
         TravelUser user = currentUser.require();
@@ -50,8 +62,11 @@ public class RouteService {
             throw new org.springframework.security.access.AccessDeniedException("Resource ownership required");
         }
 
+        var prepared = preparePlaces(dto);
+        return new org.springframework.transaction.support.TransactionTemplate(transactionManager).execute(status -> {
+        TravelUser activeUser = currentUser.require();
         Route route = new Route();
-        route.setUser(user);
+        route.setUser(activeUser);
         route.setTitle(dto.getTitle());
         route.setStartDate(dto.getStartDate());
         route.setEndDate(dto.getEndDate());
@@ -67,7 +82,7 @@ public class RouteService {
          // [안쪽 for문]: 해당 날짜의 장소(Place)들을 순회합니다.
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+            	Place place = placeService.savePreparedPlace(sp.getPlaceId(), prepared.get(sp.getPlaceId()));
             	
                 RoutePlace rp = new RoutePlace();
                 
@@ -84,6 +99,7 @@ public class RouteService {
         }
 
         return saved.getId();
+        });
     }
 
     /**
@@ -191,7 +207,7 @@ public class RouteService {
     /**
      * 일정 수정 (최종 수정본)
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public void updateRoute(Long routeId, RouteCreateRequestDto dto) {
 
         // 1. 기존 일정 조회 및 기본 정보 업데이트
@@ -200,10 +216,15 @@ public class RouteService {
 
         currentUser.requireId(route.getUser().getId());
 
-        route.setTitle(dto.getTitle());
-        route.setStartDate(dto.getStartDate());
-        route.setEndDate(dto.getEndDate());
-        route.setTotalDays(dto.getPlaces().size());
+        var prepared = preparePlaces(dto);
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+        Route lockedRoute = routeRepository.findForUpdate(routeId)
+                .orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        currentUser.requireId(lockedRoute.getUser().getId());
+        lockedRoute.setTitle(dto.getTitle());
+        lockedRoute.setStartDate(dto.getStartDate());
+        lockedRoute.setEndDate(dto.getEndDate());
+        lockedRoute.setTotalDays(dto.getPlaces().size());
 
         // 2. 기존 장소들 모두 삭제 (Delete All)
         routePlaceRepository.deleteByRouteId(routeId);
@@ -216,10 +237,10 @@ public class RouteService {
 
                 // [수정 포인트] findById가 아니라 savePlaceFromGoogle 사용!
                 // sp.getPlaceId()는 이제 String(Google ID)입니다.
-                Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+                Place place = placeService.savePreparedPlace(sp.getPlaceId(), prepared.get(sp.getPlaceId()));
 
                 RoutePlace rp = new RoutePlace();
-                rp.setRoute(route);
+                rp.setRoute(lockedRoute);
                 rp.setPlace(place);
                 rp.setPlaceName(place.getName());
                 rp.setDayIndex(dayIndex);
@@ -230,6 +251,7 @@ public class RouteService {
             }
             dayIndex++;
         }
+        });
     }
 
     /**
