@@ -27,33 +27,31 @@
 | RP-14 | P2·성능 후보 | 일정 목록 조회의 반복 쿼리와 외부 호출 중 DB 트랜잭션 범위 검토 | RouteService 목록 map에서 추가 조회, 쓰기 트랜잭션에서 PlaceService 외부 조회. 코드 근거 | 대표 데이터의 쿼리 수·DB 점유시간·오류 원자성을 전후 비교. 동작 계약 유지 |
 | RP-15 | P1·검증 선행 | 실행 정보·회귀 테스트·환경변수 문서 확보 | Java contextLoads만 존재, Frontend test script/의존성 없음, Python 실행 의존성 명세 부족 | 비밀값 없는 설정 예시와 검증된 설치·테스트 명령. 단위/통합/실제 공급자 검증 결과를 구분 |
 
-## 연관 범위별 진행
+## 분야별 실제 PR 현황 — 2026-11-02
 
-사용자 요청에 따라 관련된 항목은 같은 PR에서 처리한다. 번호를 맞추려고 15개의 PR로 분리하지 않는다. 백엔드와 프론트 저장소를 가로지르는 묶음은 저장소별 PR을 만들고 서로 연결한다.
+분류 문서만 만든 것이 아니라 각 묶음에 실제 소스·회귀 검사가 있는 PR을 생성했다. 이 #53은 색인 문서이며 코드 PR을 대체하지 않는다.
 
-| 묶음 | 범위 | 항목 | PR·상태 |
-| --- | --- | --- | --- |
-| G1 | 빌드·테스트 기반 | RP-01 + RP-15 Java 부분 | [Backend #54](https://github.com/tjoeunProject/Backend/pull/54): 구현·기본 테스트 2개 통과, 초안·미병합 |
-| G2 | 사용자 권한·응답 | RP-02·03·04 | 일정/좋아요 소유권과 응답 DTO를 함께 처리. G1 환경 재사용, 미구현 |
-| G3 | 인증·토큰·ID 설정 | RP-05·08·09 + 필요한 프론트 검증 기반 | 백엔드 토큰 정책과 프론트 갱신·ID 설정을 연결된 저장소별 PR로 처리, 미구현 |
-| G4 | 지도 경로 처리 | RP-06·07 | [Frontend #73](https://github.com/tjoeunProject/Frontend/pull/73): RP-07 구현·검증, RP-06 계약 복구는 같은 PR의 후속 작업 |
-| G5 | Python 요청 안정성 | RP-10·11·12 + RP-15 Python 부분 | 요청 상태·검색 캐시·입력/호출 제한과 fixture 기반 검증을 함께 처리, 미구현 |
-| G6 | 일정 생성·조회 성능 | RP-13·14 | 거리 계산·반복 쿼리·외부 호출 중 DB 점유를 측정하고 관련 최적화 처리, 미측정·미구현 |
+| 묶음 | 실제 코드 PR | 확인 결과 / 남은 작업 |
+| --- | --- | --- |
+| G1 빌드·테스트 | [Backend #54](https://github.com/tjoeunProject/Backend/pull/54) | Java 환경 테스트 2개 통과 |
+| G2 권한·응답 | [Backend #55](https://github.com/tjoeunProject/Backend/pull/55) | Java 10개 통과; G1 기반 |
+| G3 인증·토큰·ID | [Backend #56](https://github.com/tjoeunProject/Backend/pull/56), [Frontend #74](https://github.com/tjoeunProject/Frontend/pull/74) | Java 17개 / 프론트 16개 통과. Oracle 토큰 컬럼·재로그인 및 실제 브라우저 확인 필요 |
+| G4 지도 경로 | [Frontend #73](https://github.com/tjoeunProject/Frontend/pull/73) | RP-06·07 구현, 테스트 10개 / Vite build 통과; 실제 지도 통합 미검증 |
+| G5 Python 안정성 | [Backend #58](https://github.com/tjoeunProject/Backend/pull/58) | 테스트 9개 통과. 서비스 인증·호출 예산·전체 deadline·nearby 중첩 제한은 남음 |
+| G6 일정 성능 | [Backend #57](https://github.com/tjoeunProject/Backend/pull/57) | Java 11개 / Python 1개 통과. SQL 37→2, 거리 fixture 29.74→17.18ms. 외부 호출/쓰기 트랜잭션 분리는 남음 |
 
-### 완료 상태
+모두 초안·미병합이며 자동 병합하지 않는다. 테스트 개수는 PR별 실행 결과로, 공통 검사를 포함하므로 합산하지 않는다. 코드 구현·로컬 통과와 실제 배포 완료를 구분한다. G5/G6의 남은 항목 때문에 전체 수정 완료로 표시하지 않는다.
 
-- [x] G1 Java 빌드·테스트 기반 수정과 기본 검증 — #54 초안, 미병합
-- [ ] G2 사용자 권한·응답
-- [ ] G3 인증·토큰·ID 설정
-- [ ] G4 지도 경로 — 좌표 수정 완료, API 함수 계약은 남음
-- [ ] G5 Python 요청 안정성
-- [ ] G6 성능
+### 의존 관계와 처리 순서
 
-RP-15의 Java·프론트·Python 기반은 각 분야에 붙여 보강하며 전체가 완료됐다고 표시하지 않는다. 이미 검증한 #73은 유지하고 관련 지도 기능을 이어서 보강한다. 계획 문서 #53의 병합을 코드 수정의 기술적 의존성으로 만들지 않는다. 자동 병합은 하지 않는다.
+- Backend: main → G1 #54 → G2 #55 → G3 #56 / G6 #57. G3와 G6는 G2에서 각각 갈라진 별도 PR이다.
+- Python G5 #58은 main 기반으로 독립 진행한다.
+- Frontend: fe_main → G4 #73 → G3 #74. 두 저장소의 G3를 함께 검토하되 PR은 별개다.
+- 선행 PR 병합 후 후행 base를 기본 브랜치로 바꾸며, 이 문서의 병합을 코드 의존성으로 만들지 않는다.
 
-각 구현 PR은 독립 기대값의 실패→최소 수정→동일 검사 성공, 관련 회귀 결과, 성능 측정 또는 구체적인 차단 사유, 요구사항·유지보수성의 별도 리뷰를 포함한다. 아직 구현하지 않은 항목을 위해 빈 코드 PR을 만들지는 않는다.
+각 PR 본문과 docs/verification 또는 trip/docs에 실제 red/green, 성능 예산·원시값 또는 비교 차단 사유를 기록했다. Oracle·실제 공급자·브라우저 E2E는 완료한 로컬 검증과 구분한다. 사용자 미추적 파일과 작업 중 변경은 업로드하지 않았다.
 
-## 이번 검증 범위
+## 최초 검토 범위 — 2026-10-30
 
 - GitHub에서 양쪽 저장소의 기본 브랜치와 현재 코드를 확인했고 열린 기존 PR은 발견하지 못했다.
 - Java Wrapper 실행은 properties 파일 부재로 실패했다. 이 실패는 애플리케이션 테스트 통과나 운영 장애의 증거가 아니다.
@@ -65,10 +63,10 @@ RP-15의 Java·프론트·Python 기반은 각 분야에 붙여 보강하며 전
 코드에서 확인한 이름만 기록한다. 실제 값과 배포 설정 상태는 이 문서로 판단하지 않는다.
 
 - Python: GEMINI_API_KEY, SERPAPI_KEY, GOOGLE_MAPS_API_KEY.
-- Frontend: VITE_GOOGLE_MAPS_API_KEY, VITE_SALT.
+- Frontend: VITE_GOOGLE_MAPS_API_KEY, VITE_SALT, VITE_HASHIDS_MIN_LENGTH.
 - Spring: google.places.api-key, google.maps.apiKey, hashids.salt, hashids.min-length, application.security.jwt.secret-key 및 Access/Refresh 만료 설정, Oracle datasource 연결 설정.
 - 로컬 설정 파일이 없다는 사실은 배포 키가 없다는 뜻이 아니다. 이 설정 목록을 채우기 위해 실제 유료 API를 호출하지 않는다.
 
 좌표 기대값 출처: [Google Encoded Polyline 문서](https://developers.google.com/maps/documentation/utilities/polylinealgorithm).
 
-현재 코드 수정 PR: [Frontend #73 — E5 좌표 배율](https://github.com/tjoeunProject/Frontend/pull/73). 나머지 항목은 준비 상태와 검증 조건을 확인하면서 순차 처리한다.
+최신 코드 PR과 미완료 항목은 위 2026-11-02 현황을 기준으로 확인한다.
