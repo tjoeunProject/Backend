@@ -42,23 +42,26 @@ public class JwtService {
       Map<String, Object> extraClaims,
       UserDetails userDetails
   ) {
-    return buildToken(extraClaims, userDetails, jwtExpiration);
+    return buildToken(extraClaims, userDetails, jwtExpiration, "access");
   }
 
   public String generateRefreshToken(
       UserDetails userDetails
   ) {
-    return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    return buildToken(new HashMap<>(), userDetails, refreshExpiration, "refresh");
   }
 
   private String buildToken(
           Map<String, Object> extraClaims,
           UserDetails userDetails,
-          long expiration
+          long expiration, String purpose
   ) {
+    Map<String, Object> claims = new HashMap<>(extraClaims);
+    claims.put("token_use", purpose);
     return Jwts
             .builder()
-            .setClaims(extraClaims)
+            .setClaims(claims)
+            .setId(java.util.UUID.randomUUID().toString())
             .setSubject(userDetails.getUsername())
             .setIssuedAt(new Date(System.currentTimeMillis()))
             .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -68,7 +71,15 @@ public class JwtService {
 
   public boolean isTokenValid(String token, UserDetails userDetails) {
     final String username = extractUsername(token);
-    return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    return userDetails.isEnabled() && java.util.Objects.equals(username, userDetails.getUsername()) && !isTokenExpired(token);
+  }
+
+  public boolean isAccessToken(String token, UserDetails user) {
+    return "access".equals(extractClaim(token, c -> c.get("token_use", String.class))) && isTokenValid(token, user);
+  }
+
+  public boolean isRefreshToken(String token, UserDetails user) {
+    return "refresh".equals(extractClaim(token, c -> c.get("token_use", String.class))) && isTokenValid(token, user);
   }
 
   private boolean isTokenExpired(String token) {

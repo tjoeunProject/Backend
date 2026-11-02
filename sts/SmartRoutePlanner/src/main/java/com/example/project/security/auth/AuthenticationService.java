@@ -1,119 +1,78 @@
 package com.example.project.security.auth;
 
 import java.io.IOException;
-
-import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import com.example.project.member.domain.TravelUser;
 import com.example.project.member.repository.TravelUserRepository;
 import com.example.project.security.config.JwtService;
+import com.example.project.security.config.TokenRevocationService;
 import com.example.project.security.token.Token;
 import com.example.project.security.token.TokenRepository;
 import com.example.project.security.token.TokenType;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthenticationService {
-  private final TravelUserRepository repository;
-  private final TokenRepository tokenRepository;
-  private final PasswordEncoder passwordEncoder;
-  private final JwtService jwtService;
-  private final AuthenticationManager authenticationManager;
+    private final TravelUserRepository repository;
+    private final TokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
+    private final TokenRevocationService revocation;
 
-  public AuthenticationResponse register(RegisterRequest request) {
-    var user = TravelUser.builder()
-        .nickname(request.getNickname())
-        .gender(request.getGender())
-        .email(request.getEmail())
-        .password(passwordEncoder.encode(request.getPassword()))
-        .build();
-    var savedUser = repository.save(user);
-    var jwtToken = jwtService.generateToken(user);
-    var refreshToken = jwtService.generateRefreshToken(user);
-    saveUserToken(savedUser, jwtToken);
-    return AuthenticationResponse.builder()
-        .accessToken(jwtToken)
-        .refreshToken(refreshToken)
-        .userId(user.getId()) // ★ 여기 추가: DB에서 조회한 user의 ID를 넣음
-        .build();
-  }
-
-  public AuthenticationResponse authenticate(AuthenticationRequest request) {
-    authenticationManager.authenticate(
-        new UsernamePasswordAuthenticationToken(
-            request.getEmail(),
-            request.getPassword()
-        )
-    );
-    var user = repository.findByEmail(request.getEmail())
-        .orElseThrow();
-    var jwtToken = jwtService.generateToken(user);
-    var refreshToken = jwtService.generateRefreshToken(user);
-    revokeAllUserTokens(user);
-    saveUserToken(user, jwtToken);
-    return AuthenticationResponse.builder()
-        .accessToken(jwtToken)
-        .refreshToken(refreshToken)
-        .userId(user.getId()) // ★ 여기 추가: DB에서 조회한 user의 ID를 넣음
-        .build();
-  }
-
-  private void saveUserToken(TravelUser user, String jwtToken) {
-    var token = Token.builder()
-        .user(user)
-        .token(jwtToken)
-        .tokenType(TokenType.BEARER)
-        .expired(false)
-        .revoked(false)
-        .build();
-    tokenRepository.save(token);
-  }
-
-  private void revokeAllUserTokens(TravelUser user) {
-    var validUserTokens = tokenRepository.findAllValidTokenByUser(user.getId());
-    if (validUserTokens.isEmpty())
-      return;
-    validUserTokens.forEach(token -> {
-      token.setExpired(true);
-      token.setRevoked(true);
-    });
-    tokenRepository.saveAll(validUserTokens);
-  }
-
-  public void refreshToken(
-          HttpServletRequest request,
-          HttpServletResponse response
-  ) throws IOException {
-    final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-    final String refreshToken;
-    final String userEmail;
-    if (authHeader == null ||!authHeader.startsWith("Bearer ")) {
-      return;
+    public AuthenticationResponse register(RegisterRequest request) {
+        var user=repository.save(TravelUser.builder().nickname(request.getNickname())
+                .gender(request.getGender()).email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword())).build());
+        return issuePair(user);
     }
-    refreshToken = authHeader.substring(7);
-    userEmail = jwtService.extractUsername(refreshToken);
-    if (userEmail != null) {
-      var user = this.repository.findByEmail(userEmail)
-              .orElseThrow();
-      if (jwtService.isTokenValid(refreshToken, user)) {
-        var accessToken = jwtService.generateToken(user);
-        revokeAllUserTokens(user);
-        saveUserToken(user, accessToken);
-        var authResponse = AuthenticationResponse.builder()
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
-        new ObjectMapper().writeValue(response.getOutputStream(), authResponse);
-      }
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request) {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(),request.getPassword()));
+        var user=repository.findByEmail(request.getEmail()).orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
+        if(!user.isEnabled()) throw new BadCredentialsException("Invalid credentials");
+        revocation.revokeAll(user);
+        return issuePair(user);
     }
-  }
+
+    private AuthenticationResponse issuePair(TravelUser user) {
+        String access=jwtService.generateToken(user), refresh=jwtService.generateRefreshToken(user);
+        save(user,access); save(user,refresh);
+        return AuthenticationResponse.builder().accessToken(access).refreshToken(refresh).userId(user.getId()).build();
+    }
+
+    private void save(TravelUser user,String token) {
+        tokenRepository.save(Token.builder().user(user).token(token).tokenType(TokenType.BEARER)
+                .expired(false).revoked(false).build());
+    }
+
+    public void refreshToken(HttpServletRequest request,HttpServletResponse response) throws IOException {
+        String header=request.getHeader(HttpHeaders.AUTHORIZATION);
+        if(header==null || !header.startsWith("Bearer ")) throw new BadCredentialsException("Refresh token required");
+        String raw=header.substring(7);
+        var stored=tokenRepository.findForUpdateByToken(raw).orElseThrow(() -> new BadCredentialsException("Invalid refresh token"));
+        boolean valid;
+        try {
+            valid=!stored.isExpired() && !stored.isRevoked() && jwtService.isRefreshToken(raw,stored.getUser());
+        } catch(io.jsonwebtoken.JwtException | IllegalArgumentException exception) {
+            valid=false;
+        }
+        if(!valid) throw new BadCredentialsException("Invalid refresh token");
+        // The locked refresh row serializes concurrent reuse of this token.
+        revocation.revokeAll(stored.getUser());
+        var pair=issuePair(stored.getUser());
+        response.setContentType("application/json");
+        new ObjectMapper().writeValue(response.getOutputStream(),pair);
+    }
 }

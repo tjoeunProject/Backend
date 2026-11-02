@@ -37,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   ) throws ServletException, IOException {
     
     // 1. Auth 경로는 바로 통과
-    if (request.getServletPath().contains("/api/v1/auth")) {
+    if (request.getServletPath().startsWith("/api/v1/auth/")) {
       filterChain.doFilter(request, response);
       return;
     }
@@ -72,7 +72,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
               .map(t -> !t.isExpired() && !t.isRevoked())
               .orElse(false);
           
-          if (jwtService.isTokenValid(jwt, userDetails) && isTokenValid) {
+          if (jwtService.isAccessToken(jwt, userDetails) && isTokenValid && userDetails.isEnabled()) {
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                 userDetails,
                 null,
@@ -84,12 +84,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authToken);
           }
         }
-    } catch (Exception e) {
+    } catch (io.jsonwebtoken.JwtException | org.springframework.security.core.userdetails.UsernameNotFoundException | IllegalArgumentException e) {
         // 🔥 [예외 처리] 
         // 토큰이 만료되었거나(ExpiredJwtException) 형식이 잘못된 경우(MalformedJwtException)
         // 에러를 던지지 않고 로그만 남기고 넘어갑니다.
         // 결과적으로 SecurityContext가 비어있으므로 "익명 사용자"로 처리되어 permitAll 페이지에 접속 가능해집니다.
-        System.out.println("⚠️ JWT 오류 발생 (비회원 처리): " + e.getMessage());
+        // Invalid tokens remain anonymous; do not log token-bearing exceptions.
     }
     
     // 5. 다음 필터로 진행 (필수)

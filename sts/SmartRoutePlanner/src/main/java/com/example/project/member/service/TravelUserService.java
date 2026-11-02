@@ -31,6 +31,7 @@ public class TravelUserService {
     private final TravelUserRepository repository;
     private final MemberLikeRouteRepository likeRepository;
     private final RouteService routeService;
+    private final com.example.project.security.config.TokenRevocationService tokenRevocation;
 
     // ================================
     // ❗ 1) 내 정보 조회
@@ -67,10 +68,12 @@ public class TravelUserService {
     // ================================
     // ❗ 3) 회원 탈퇴 (soft delete)
     // ================================
+    @Transactional
     public void deleteUser(Principal principal) {
         TravelUser user = repository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
 
+        tokenRevocation.revokeAll(user);
         user.setDelflag("Y");
         user.setDeletedate(LocalDate.now());
         repository.save(user);
