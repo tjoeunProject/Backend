@@ -9,6 +9,12 @@ group = 'com.study'
 version = '0.0.1-SNAPSHOT'
 description = 'Demo project for Spring Boot'
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
 
 configurations {
     compileOnly {
@@ -42,6 +48,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
     
     // 2. JWT (JJWT) - 0.11.5
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'

@@ -18,6 +18,10 @@ import com.example.project.route.domain.Route;
 import com.example.project.security.user.ChangePasswordRequest;
 
 import lombok.RequiredArgsConstructor;
+import com.example.project.member.dto.LikeRouteResponse;
+import com.example.project.route.dto.RouteListItemDto;
+import com.example.project.route.service.RouteService;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,8 @@ public class TravelUserService {
     private final PasswordEncoder passwordEncoder;
     private final TravelUserRepository repository;
     private final MemberLikeRouteRepository likeRepository;
+    private final RouteService routeService;
+    private final com.example.project.security.config.TokenRevocationService tokenRevocation;
 
     // ================================
     // ❗ 1) 내 정보 조회
@@ -62,10 +68,12 @@ public class TravelUserService {
     // ================================
     // ❗ 3) 회원 탈퇴 (soft delete)
     // ================================
+    @Transactional
     public void deleteUser(Principal principal) {
         TravelUser user = repository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
 
+        tokenRevocation.revokeAll(user);
         user.setDelflag("Y");
         user.setDeletedate(LocalDate.now());
         repository.save(user);
@@ -86,22 +94,24 @@ public class TravelUserService {
     // ================================
     // ❗ 5) 좋아요한 루트 목록 조회
     // ================================
-    public List<MemberLikeRoute> getMyLikedRoutes(Principal principal) {
+    @Transactional(readOnly = true)
+    public List<LikeRouteResponse> getMyLikedRoutes(Principal principal) {
         TravelUser user = repository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
 
-        return likeRepository.findByUser(user);
+        return likeRepository.findByUser(user).stream().map(LikeRouteResponse::from).toList();
     }
 
     // ================================
     // ❗ 6) 내가 만든 루트 목록 조회
     // ================================
-    public List<Route> getMyCreatedRoutes(Principal principal) {
+    @Transactional(readOnly = true)
+    public List<RouteListItemDto> getMyCreatedRoutes(Principal principal) {
 
         TravelUser user = repository.findByEmail(principal.getName())
                 .orElseThrow(() -> new RuntimeException("유저 정보를 찾을 수 없습니다."));
 
-        return user.getRoutes();
+        return routeService.getRoutesByMember(user.getId().longValue());
     }
 
     // ================================

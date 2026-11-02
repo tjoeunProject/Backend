@@ -1,0 +1,38 @@
+{
+  "scenario": "successful registration",
+  "baseline": "66ab0a69111a232969df5cbfe3f1d3eb3bc6bfc4",
+  "candidate": "reviewed G3 working copy",
+  "runtime": "Windows, JDK 17.0.12, Gradle 8.14, H2/MockMvc",
+  "concurrency": 1,
+  "external_calls": 0,
+  "warmup_requests": 3,
+  "batches": 7,
+  "requests_per_batch": 3,
+  "baseline_ms_per_request": [
+    71.56953333333334,
+    73.11993333333334,
+    69.42976666666667,
+    71.03753333333333,
+    71.48353333333333,
+    70.8792,
+    69.42116666666666
+  ],
+  "candidate_ms_per_request": [
+    69.20903333333334,
+    71.50113333333333,
+    70.8207,
+    70.1968,
+    72.10786666666667,
+    68.8079,
+    68.43063333333333
+  ],
+  "baseline_median": 71.03753333333333,
+  "candidate_median": 70.1968,
+  "budget": "candidate <= baseline * 1.5 + 10ms",
+  "verdict": "within overhead budget",
+  "limitations": [
+    "Sequential JVMs; descriptive only",
+    "Oracle and provider latency unmeasured",
+    "Batch averages are not request p95"
+  ]
+}
