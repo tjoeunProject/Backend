@@ -1,3 +1,4 @@
+from modules.request_guard import call_provider, RequestLimitExceeded
 import math
 from geopy.distance import geodesic
 from modules.generator import CourseGenerator
@@ -17,10 +18,8 @@ class CourseGeneratorV2(CourseGenerator):
         self.recommender = PlaceRecommender(serp_key, google_maps_key)
         self.optimizer = RouteOptimizer()
         self.segmenter = DaySegmenter()
-        self.used_restaurant_ids = set()
 
     def generate_full_course(self, regions, days, tags):
-        self.used_restaurant_ids.clear()
         
         # 1. 지역별 날짜 배분
         num_regions = len(regions)
@@ -174,8 +173,8 @@ class CourseGeneratorV2(CourseGenerator):
             current_time += duration
             
         # 점심 로직
-        if not lunch_added and current_time >= LUNCH_TARGET:
-            restaurant = self._find_restaurant(place, "점심", tags)
+        if last_place and not lunch_added and current_time >= LUNCH_TARGET:
+            restaurant = self._find_restaurant_with_backtrack(last_place, None, "점심", tags, added_place_ids)
             
             # [수정] 거리 체크 로직 추가
             if restaurant:
@@ -190,8 +189,8 @@ class CourseGeneratorV2(CourseGenerator):
                     print(f"   ⚠️ 점심 건너뜀: 가장 가까운 식당이 너무 멂 ({dist:.1f}km)")
         
         # 저녁 로직
-        if not dinner_added and current_time >= DINNER_TARGET:
-            restaurant = self._find_restaurant(place, "저녁", tags)
+        if last_place and not dinner_added and current_time >= DINNER_TARGET:
+            restaurant = self._find_restaurant_with_backtrack(last_place, None, "저녁", tags, added_place_ids)
             
             # [수정] 거리 체크 로직 추가
             if restaurant:
@@ -207,7 +206,7 @@ class CourseGeneratorV2(CourseGenerator):
 
             # 저녁 누락 방지 (마지막 장소 기준)
             if not dinner_added and last_place:
-                restaurant = self._find_restaurant(last_place, "저녁", tags)
+                restaurant = self._find_restaurant_with_backtrack(last_place, None, "저녁", tags, added_place_ids)
                 if restaurant:
                     dist = geodesic((last_place['lat'], last_place['lng']), (restaurant['lat'], restaurant['lng'])).km
                     if dist <= MAX_DINING_DIST_KM:
@@ -217,7 +216,7 @@ class CourseGeneratorV2(CourseGenerator):
 
         return new_schedule
 
-    def _find_restaurant_with_backtrack(self, current_place, prev_place, meal_type, tags):
+    def _find_restaurant_with_backtrack(self, current_place, prev_place, meal_type, tags, used_ids):
         if not self.recommender.gmaps:
             print("   ⚠️ Google Maps API Key 없음")
             return None
@@ -225,32 +224,32 @@ class CourseGeneratorV2(CourseGenerator):
         keyword_tagged = self.recommender._get_keyword_from_tags(tags, f"{meal_type} 맛집")
         keyword_normal = f"{meal_type} 맛집"
 
-        res = self._find_restaurant(current_place, keyword_tagged, 3.0)
+        res = self._find_restaurant(current_place, keyword_tagged, 3.0, used_ids)
         if res: return self._format_restaurant(res, current_place, meal_type)
 
-        res = self._find_restaurant(current_place, keyword_normal, 3.0)
+        res = self._find_restaurant(current_place, keyword_normal, 3.0, used_ids)
         if res: 
             print(f"      ↪ 태그 조건 없음 -> 일반 맛집 선택")
             return self._format_restaurant(res, current_place, meal_type)
         
         if prev_place and prev_place.get('id') != current_place.get('id'):
             print(f"      ↪ 🚨 현재 위치({current_place['name']}) 식당 없음 -> 이전 관광지({prev_place['name']}) 주변 검색")
-            res = self._find_restaurant(prev_place, keyword_normal, 3.0)
+            res = self._find_restaurant(prev_place, keyword_normal, 3.0, used_ids)
             if res:
                 return self._format_restaurant(res, prev_place, meal_type)
 
         print(f"      ↪ 이전 장소도 식당 없음 -> 반경 10km 확장")
-        res = self._find_restaurant(current_place, keyword_normal, 10.0)
+        res = self._find_restaurant(current_place, keyword_normal, 10.0, used_ids)
         if res:
              return self._format_restaurant(res, current_place, meal_type)
 
         return None
 
-    def _find_restaurant(self, location, keyword, dist_limit):
+    def _find_restaurant(self, location, keyword, dist_limit, used_ids):
         try:
             radius_meter = int(dist_limit * 1000) + 2000
             
-            response = self.recommender.gmaps.places(
+            response = call_provider(self.recommender.gmaps.places,
                 query=keyword,
                 location=(location['lat'], location['lng']),
                 radius=radius_meter, 
@@ -260,7 +259,7 @@ class CourseGeneratorV2(CourseGenerator):
             results = response.get('results', [])
             
             for candidate in results:
-                if candidate.get('place_id') in self.used_restaurant_ids:
+                if candidate.get('place_id') in used_ids:
                     continue
                 
                 cand_lat = candidate['geometry']['location']['lat']
@@ -272,9 +271,11 @@ class CourseGeneratorV2(CourseGenerator):
                 ).km
                 
                 if dist <= dist_limit:
-                    self.used_restaurant_ids.add(candidate.get('place_id'))
+                    used_ids.add(candidate.get('place_id'))
                     return candidate
             return None
+        except RequestLimitExceeded:
+            raise
         except Exception:
             return None
 
@@ -282,8 +283,8 @@ class CourseGeneratorV2(CourseGenerator):
         photo_url = ""
         if pick.get('photos'):
             photo_ref = pick['photos'][0]['photo_reference']
-            api_key = self.recommender.maps_key
-            photo_url = f"https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photo_reference={photo_ref}&key={api_key}"
+            # Return only the reference. Never embed the server API key in output.
+            photo_url = ""
 
         return {
             "id": f"dining_{location['id']}_{meal_type}",
@@ -296,6 +297,7 @@ class CourseGeneratorV2(CourseGenerator):
             "type": "restaurant",
             "vicinity": pick.get('formatted_address') or pick.get('vicinity', ""),
             "photoUrl": photo_url,
+            "photo_reference": pick.get("photos", [{}])[0].get("photo_reference") if pick.get("photos") else None,
             "duration_min": 60 if meal_type == "점심" else 90,
             "best_time": "Lunch" if meal_type == "점심" else "Dinner",
             "day": 0, 

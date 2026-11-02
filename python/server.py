@@ -1,6 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from modules.service_auth import authorize
+from modules.body_limit import BodyLimit
+from modules.request_guard import guarded, RequestLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -34,11 +37,12 @@ else: print("❌ GOOGLE_MAPS_API_KEY 없음 (.env 변수명 확인 필요)")
 print("="*40 + "\n")
 
 
-app = FastAPI()
+app = FastAPI(dependencies=[Depends(authorize)])
+app.add_middleware(BodyLimit)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if origin.strip() and origin.strip() != "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,15 +71,51 @@ generator = CourseGeneratorV2(GEMINI_API_KEY, SERPAPI_KEY, GOOGLE_MAPS_API_KEY)
 # ---------------------------------------------------------
 class TripRequest(BaseModel):
     destination: list[str] | str
-    days: int
-    tags: list[str] = []
+    days: int = Field(ge=1, le=14, strict=True)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator('destination')
+    @classmethod
+    def bounded_destination(cls, value):
+        regions = [value] if isinstance(value, str) else value
+        if not 1 <= len(regions) <= 5 or any(not x.strip() or len(x) > 100 for x in regions):
+            raise ValueError('Provide one to five nonempty destinations')
+        return value
+
+class OptimizeRequest(BaseModel):
+    places: list[dict] = Field(min_length=1, max_length=200)
+    days: int = Field(default=1, ge=1, le=14, strict=True)
+
+    @field_validator('places')
+    @classmethod
+    def valid_coordinates(cls, values):
+        import math
+        for place in values:
+            lat, lng = place.get('lat'), place.get('lng')
+            if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)) or isinstance(lat, bool) or isinstance(lng, bool):
+                raise ValueError('Coordinates must be numbers')
+            if not math.isfinite(lat) or not math.isfinite(lng) or not -90 <= lat <= 90 or not -180 <= lng <= 180:
+                raise ValueError('Coordinates out of range')
+        return values
+
+
+class NearbyRequest(BaseModel):
+    places: list[list[dict]] = Field(min_length=1, max_length=14)
+    @field_validator('places')
+    @classmethod
+    def bounded_places(cls, values):
+        flat = [p for day in values for p in day]
+        if not flat or len(flat) > 200: raise ValueError('Provide one to 200 places')
+        OptimizeRequest.valid_coordinates(flat)
+        return values
 
 # =========================================================
 #  1. Generate API (AI 일정 생성 - 메인)
 # =========================================================
 @app.post("/generate")
+@guarded
 def generate_course(request: TripRequest):
-    print(f"📥 [Generate 요청]: {request.dict()}")
+    print("Generate request accepted")
     
     # 리스트/문자열 처리
     if isinstance(request.destination, str):
@@ -93,18 +133,21 @@ def generate_course(request: TripRequest):
         print("✅ 최종 일정 생성 완료 (V2)")
         return result
 
+    except RequestLimitExceeded:
+        raise
     except Exception as e:
-        print(f"❌ Server Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print("Generation provider failed")
+        raise HTTPException(status_code=502, detail="Generation unavailable") from None
 
 
 # =========================================================
 #  2. Optimize API (재최적화 기능)
 # =========================================================
 @app.post("/optimize")
-def optimize(data: dict):
-    places = data.get("places", [])
-    days = int(data.get("days", 1))
+@guarded
+def optimize(data: OptimizeRequest):
+    places = data.places
+    days = data.days
 
     print(f"📥 [Optimize 요청] 장소 {len(places)}개, {days}일")
 
@@ -129,8 +172,9 @@ def optimize(data: dict):
 #  3. Nearby API (주변 맛집 수동 검색)
 # =========================================================
 @app.post("/nearby")
-def nearby(data: dict):
-    itinerary_list = data.get("places", [])
+@guarded
+def nearby(data: NearbyRequest):
+    itinerary_list = data.places
     
     if not itinerary_list:
         return {"error": "No itinerary data received"}
@@ -154,9 +198,11 @@ def nearby(data: dict):
             final_recommendations.append(rec)
 
         return {"recommendations": final_recommendations}
+    except RequestLimitExceeded:
+        raise
     except Exception as e:
-        print(f"❌ Nearby Error: {e}")
-        return {"error": str(e)}
+        print("Nearby provider failed")
+        raise HTTPException(status_code=502, detail="Nearby search unavailable") from None
 
 
 if __name__ == "__main__":
