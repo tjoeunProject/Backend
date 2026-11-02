@@ -4,12 +4,13 @@ from modules.optimizer import RouteOptimizer
 from modules.clustering import DaySegmenter
 
 # 메모리 캐시
-_RAM_CACHE = {}
+from modules.place_cache import PlaceCache
 
 class CourseGenerator:
     def __init__(self, gemini_key, serp_key):
         self.gemini_key = gemini_key
         self.serp_key = serp_key
+        self.place_cache = PlaceCache()
         
         self.optimizer = RouteOptimizer()
         self.segmenter = DaySegmenter()
@@ -85,11 +86,13 @@ class CourseGenerator:
         pool = []
         
         for region in regions:
+            region_pool = []
             query = f"{region} {keyword_suffix}" 
             
             cache_key = f"{query}_{limit}"
-            if cache_key in _RAM_CACHE:
-                pool.extend(_RAM_CACHE[cache_key])
+            cached = self.place_cache.get(cache_key)
+            if cached is not None:
+                pool.extend(cached)
                 continue
 
             print(f"   🔍 검색 진행: {query} (목표: {limit}개)")
@@ -97,7 +100,7 @@ class CourseGenerator:
             # [핵심 수정] 페이지네이션 (Pagination) 로직 추가
             # 원하는 개수(limit)를 채울 때까지 최대 3페이지(60개)까지 검색
             start = 0
-            while len(pool) < limit and start < 60:
+            while len(region_pool) < limit and start < 60:
                 try:
                     params = {
                         "engine": "google_maps",
@@ -110,7 +113,7 @@ class CourseGenerator:
                         "start": start  # 페이지 오프셋
                     }
                     
-                    search = GoogleSearch(params)
+                    search = GoogleSearch(params, timeout=15)
                     results = search.get_dict()
                     local_results = results.get("local_results", [])
                     
@@ -120,15 +123,15 @@ class CourseGenerator:
                     added_count_in_this_page = 0
                     for place in local_results:
                         # 목표 개수 다 채웠으면 중단
-                        if len(pool) >= limit: break
+                        if len(region_pool) >= limit: break
                         
                         gps = place.get("gps_coordinates", {})
-                        if not gps.get("latitude"): continue
+                        if gps.get('latitude') is None or gps.get('longitude') is None: continue
                         
                         place_id = place.get("place_id")
                         
                         # 중복 방지
-                        if any(p['id'] == place_id for p in pool):
+                        if any(p['id'] == place_id for p in region_pool):
                             continue
 
                         place_obj = {
@@ -146,19 +149,20 @@ class CourseGenerator:
                             "best_time": "Anytime"
                         }
                         
-                        pool.append(place_obj)
+                        region_pool.append(place_obj)
                         added_count_in_this_page += 1
                     
-                    print(f"      - offset {start}: {added_count_in_this_page}개 추가됨 (누적 {len(pool)}/{limit})")
+                    print(f"      - offset {start}: {added_count_in_this_page}개 추가됨 (누적 {len(region_pool)}/{limit})")
                     
                     # 다음 페이지 준비 (20개씩 건너뜀)
                     start += 20
                     
                 except Exception as e:
-                    print(f"   ⚠️ 검색 오류 ({region}): {e}")
+                    print("Place search unavailable")
                     break
             
             # 결과 캐싱
-            _RAM_CACHE[cache_key] = pool
+            self.place_cache.put(cache_key, region_pool)
+            pool.extend(region_pool)
         
         return pool

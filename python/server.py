@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 import uvicorn
 import os
 from dotenv import load_dotenv
@@ -38,7 +38,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[origin.strip() for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if origin.strip() and origin.strip() != "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,15 +67,40 @@ generator = CourseGeneratorV2(GEMINI_API_KEY, SERPAPI_KEY, GOOGLE_MAPS_API_KEY)
 # ---------------------------------------------------------
 class TripRequest(BaseModel):
     destination: list[str] | str
-    days: int
-    tags: list[str] = []
+    days: int = Field(ge=1, le=14, strict=True)
+    tags: list[str] = Field(default_factory=list, max_length=20)
+
+    @field_validator('destination')
+    @classmethod
+    def bounded_destination(cls, value):
+        regions = [value] if isinstance(value, str) else value
+        if not 1 <= len(regions) <= 5 or any(not x.strip() or len(x) > 100 for x in regions):
+            raise ValueError('Provide one to five nonempty destinations')
+        return value
+
+class OptimizeRequest(BaseModel):
+    places: list[dict] = Field(min_length=1, max_length=200)
+    days: int = Field(default=1, ge=1, le=14, strict=True)
+
+    @field_validator('places')
+    @classmethod
+    def valid_coordinates(cls, values):
+        import math
+        for place in values:
+            lat, lng = place.get('lat'), place.get('lng')
+            if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)) or isinstance(lat, bool) or isinstance(lng, bool):
+                raise ValueError('Coordinates must be numbers')
+            if not math.isfinite(lat) or not math.isfinite(lng) or not -90 <= lat <= 90 or not -180 <= lng <= 180:
+                raise ValueError('Coordinates out of range')
+        return values
+
 
 # =========================================================
 #  1. Generate API (AI 일정 생성 - 메인)
 # =========================================================
 @app.post("/generate")
 def generate_course(request: TripRequest):
-    print(f"📥 [Generate 요청]: {request.dict()}")
+    print("Generate request accepted")
     
     # 리스트/문자열 처리
     if isinstance(request.destination, str):
@@ -94,17 +119,17 @@ def generate_course(request: TripRequest):
         return result
 
     except Exception as e:
-        print(f"❌ Server Error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print("Generation provider failed")
+        raise HTTPException(status_code=502, detail="Generation unavailable") from None
 
 
 # =========================================================
 #  2. Optimize API (재최적화 기능)
 # =========================================================
 @app.post("/optimize")
-def optimize(data: dict):
-    places = data.get("places", [])
-    days = int(data.get("days", 1))
+def optimize(data: OptimizeRequest):
+    places = data.places
+    days = data.days
 
     print(f"📥 [Optimize 요청] 장소 {len(places)}개, {days}일")
 
@@ -155,8 +180,8 @@ def nearby(data: dict):
 
         return {"recommendations": final_recommendations}
     except Exception as e:
-        print(f"❌ Nearby Error: {e}")
-        return {"error": str(e)}
+        print("Nearby provider failed")
+        raise HTTPException(status_code=502, detail="Nearby search unavailable") from None
 
 
 if __name__ == "__main__":

@@ -1,0 +1,51 @@
+{
+  "scenario": "20-place hot cache lookup",
+  "runtime": "Windows / Python 3.13",
+  "concurrency": 1,
+  "external_calls": 0,
+  "provider": "fixture Search",
+  "warmup": 1,
+  "batches": 10,
+  "requests_per_batch": 100,
+  "order": "alternating AB/BA",
+  "ms_per_lookup": {
+    "baseline": [
+      0.0007820000064384658,
+      0.00047500001528533176,
+      0.0003950000063923653,
+      0.0010449999899719842,
+      0.0008479999996779952,
+      0.0005360000068321824,
+      0.0004890000127488747,
+      0.0008259999958681874,
+      0.0007609999920532573,
+      0.0008900000102585182
+    ],
+    "candidate": [
+      0.17905700000483193,
+      0.15710399999079527,
+      0.13994799999636598,
+      0.16598899999735295,
+      0.17274499999984982,
+      0.14007100000526407,
+      0.16659100001561455,
+      0.15696600001319894,
+      0.1560799999970186,
+      0.16279899999062764
+    ]
+  },
+  "median_ms": {
+    "baseline": 0.0007714999992458615,
+    "candidate": 0.15995149999071145
+  },
+  "provider_calls_after_warmup": 0,
+  "capacity": 128,
+  "ttl_seconds": 600,
+  "budget": "candidate <= baseline * 2 + 1ms; exact fixture equality; zero hot-cache provider calls",
+  "verdict": "overhead budget passed",
+  "limitations": [
+    "Defensive-copy correctness adds CPU work",
+    "No speedup claim",
+    "Provider latency and concurrent full itinerary load unmeasured"
+  ]
+}
