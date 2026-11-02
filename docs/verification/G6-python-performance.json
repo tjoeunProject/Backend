@@ -1,0 +1,50 @@
+{
+  "scenario": "20 collinear tourist spots / one day",
+  "runtime": "Windows / Python 3.12.14 / ORTools 9.12.4544 / geopy 2.5.0",
+  "concurrency": 1,
+  "external_calls": 0,
+  "order": "alternating AB/BA",
+  "warmup_per_variant": 1,
+  "runs_per_variant": 10,
+  "ms": {
+    "baseline": [
+      30.357999999978347,
+      31.293000000005122,
+      27.352799999789568,
+      34.376900001007016,
+      29.125200000635232,
+      33.86979999959294,
+      33.05510000063805,
+      22.902099999555503,
+      26.030299999547424,
+      26.78829999968002
+    ],
+    "candidate": [
+      15.360200000941404,
+      18.699599999308703,
+      18.816900001183967,
+      20.38669999819831,
+      28.08990000085032,
+      13.935400000264053,
+      20.09589999943273,
+      15.66370000000461,
+      13.576499999544467,
+      14.728800000739284
+    ]
+  },
+  "median_ms": {
+    "baseline": 29.74160000030679,
+    "candidate": 17.181649999656656
+  },
+  "geodesic_calls": {
+    "baseline": 380,
+    "candidate": 190
+  },
+  "quality": "all complete output dicts equal, including IDs, visit order and distances",
+  "budget": "candidate median <= baseline * 1.1 + 2ms; exact output equality",
+  "limitations": [
+    "Fixture only; not real road travel times",
+    "Operation reduction does not imply equal end-to-end speedup"
+  ],
+  "metadata_correction": "Python version checked from actual executable; initial 3.13 label was incorrect"
+}

@@ -29,4 +29,16 @@ public interface RoutePlaceRepository extends JpaRepository<RoutePlace, Long> {
     void deleteByRouteId(Long routeId);
     
     Optional<RoutePlace> findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(Long routeId);
+
+    @Query("""
+        select distinct rp from RoutePlace rp
+        join fetch rp.place p left join fetch p.photoReferences
+        where rp.route.id in :routeIds and not exists (
+          select earlier.id from RoutePlace earlier where earlier.route.id = rp.route.id
+          and (earlier.dayIndex < rp.dayIndex
+            or (earlier.dayIndex = rp.dayIndex and earlier.orderIndex < rp.orderIndex)
+            or (earlier.dayIndex = rp.dayIndex and earlier.orderIndex = rp.orderIndex and earlier.id < rp.id))
+        )
+        """)
+    List<RoutePlace> findFirstPlacesForRoutes(@Param("routeIds") List<Long> routeIds);
 }

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.project.member.domain.TravelUser;
-import com.example.project.member.repository.TravelUserRepository;
 import com.example.project.place.domain.Place;
 import com.example.project.place.service.PlaceService;
 import com.example.project.route.domain.Route;
@@ -22,6 +21,7 @@ import com.example.project.route.dto.RouteDetailResponseDto;
 import com.example.project.route.dto.RouteListItemDto;
 import com.example.project.route.repository.RoutePlaceRepository;
 import com.example.project.route.repository.RouteRepository;
+import com.example.project.security.config.CurrentUser;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,21 +36,37 @@ public class RouteService {
 
     private final RouteRepository routeRepository;
     private final RoutePlaceRepository routePlaceRepository;
-    private final TravelUserRepository travelUserRepository;
     private final PlaceService placeService;
+    private final CurrentUser currentUser;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
+
+    private Map<String, com.example.project.place.dto.PlaceRequestDto> preparePlaces(RouteCreateRequestDto dto) {
+        Map<String, com.example.project.place.dto.PlaceRequestDto> prepared = new LinkedHashMap<>();
+        for (var day : dto.getPlaces()) for (var place : day) {
+            String id = place.getPlaceId();
+            if (id == null || id.isBlank()) throw new IllegalArgumentException("Place ID required");
+            if (!prepared.containsKey(id)) prepared.put(id, placeService.preparePlace(id));
+        }
+        return prepared;
+    }
+
 
     /**
      * 일정 생성
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public Long createRoute(RouteCreateRequestDto dto) {
 
-        TravelUser user = travelUserRepository.findById(dto.getMemberId().intValue())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("회원 없음 id=" + dto.getMemberId()));
+        TravelUser user = currentUser.require();
+        if (dto.getMemberId() != null && dto.getMemberId().longValue() != user.getId().longValue()) {
+            throw new org.springframework.security.access.AccessDeniedException("Resource ownership required");
+        }
 
+        var prepared = preparePlaces(dto);
+        return new org.springframework.transaction.support.TransactionTemplate(transactionManager).execute(status -> {
+        TravelUser activeUser = currentUser.require();
         Route route = new Route();
-        route.setUser(user);
+        route.setUser(activeUser);
         route.setTitle(dto.getTitle());
         route.setStartDate(dto.getStartDate());
         route.setEndDate(dto.getEndDate());
@@ -66,7 +82,7 @@ public class RouteService {
          // [안쪽 for문]: 해당 날짜의 장소(Place)들을 순회합니다.
             for (RouteCreateRequestDto.SimplePlaceDto sp : day) {
 
-            	Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+            	Place place = placeService.savePreparedPlace(sp.getPlaceId(), prepared.get(sp.getPlaceId()));
             	
                 RoutePlace rp = new RoutePlace();
                 
@@ -83,6 +99,7 @@ public class RouteService {
         }
 
         return saved.getId();
+        });
     }
 
     /**
@@ -173,20 +190,16 @@ public class RouteService {
         List<Route> routes =
                 routeRepository.findAllByUser_Id(memberId.intValue());
 
-     // Stream map을 사용하여 각 Route마다 첫 번째 장소를 찾아서 DTO 생성
-        return routes.stream()
-                .map(route -> {
-                    // 1. 해당 루트의 첫 번째 장소(RoutePlace) 조회
-                    RoutePlace firstRp = routePlaceRepository
-                            .findFirstByRouteIdOrderByDayIndexAscOrderIndexAsc(route.getId())
-                            .orElse(null);
-
-                    // 2. RoutePlace에서 Place(장소 원본) 꺼내기 (없으면 null)
-                    Place firstPlace = (firstRp != null) ? firstRp.getPlace() : null;
-
-                    // 3. DTO 생성 (Route + Place 정보)
-                    return new RouteListItemDto(route, firstPlace);
-                })
+        // Keep each IN list below Oracle's 1000-expression limit.
+        java.util.Map<Long, Place> firstPlaces = new java.util.HashMap<>();
+        var ids = routes.stream().map(Route::getId).toList();
+        for (int offset = 0; offset < ids.size(); offset += 500) {
+            var batch = ids.subList(offset, Math.min(offset + 500, ids.size()));
+            for (RoutePlace rp : routePlaceRepository.findFirstPlacesForRoutes(batch)) {
+                firstPlaces.put(rp.getRoute().getId(), rp.getPlace());
+            }
+        }
+        return routes.stream().map(route -> new RouteListItemDto(route, firstPlaces.get(route.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -194,17 +207,24 @@ public class RouteService {
     /**
      * 일정 수정 (최종 수정본)
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public void updateRoute(Long routeId, RouteCreateRequestDto dto) {
 
         // 1. 기존 일정 조회 및 기본 정보 업데이트
         Route route = routeRepository.findById(routeId)
                 .orElseThrow(() -> new IllegalArgumentException("Route not found id=" + routeId));
 
-        route.setTitle(dto.getTitle());
-        route.setStartDate(dto.getStartDate());
-        route.setEndDate(dto.getEndDate());
-        route.setTotalDays(dto.getPlaces().size());
+        currentUser.requireId(route.getUser().getId());
+
+        var prepared = preparePlaces(dto);
+        new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+        Route lockedRoute = routeRepository.findForUpdate(routeId)
+                .orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        currentUser.requireId(lockedRoute.getUser().getId());
+        lockedRoute.setTitle(dto.getTitle());
+        lockedRoute.setStartDate(dto.getStartDate());
+        lockedRoute.setEndDate(dto.getEndDate());
+        lockedRoute.setTotalDays(dto.getPlaces().size());
 
         // 2. 기존 장소들 모두 삭제 (Delete All)
         routePlaceRepository.deleteByRouteId(routeId);
@@ -217,10 +237,10 @@ public class RouteService {
 
                 // [수정 포인트] findById가 아니라 savePlaceFromGoogle 사용!
                 // sp.getPlaceId()는 이제 String(Google ID)입니다.
-                Place place = placeService.savePlaceFromGoogle(sp.getPlaceId());
+                Place place = placeService.savePreparedPlace(sp.getPlaceId(), prepared.get(sp.getPlaceId()));
 
                 RoutePlace rp = new RoutePlace();
-                rp.setRoute(route);
+                rp.setRoute(lockedRoute);
                 rp.setPlace(place);
                 rp.setPlaceName(place.getName());
                 rp.setDayIndex(dayIndex);
@@ -231,6 +251,7 @@ public class RouteService {
             }
             dayIndex++;
         }
+        });
     }
 
     /**
@@ -238,6 +259,9 @@ public class RouteService {
      */
     @Transactional
     public void deleteRoute(Long routeId) {
+        Route route = routeRepository.findById(routeId)
+                .orElseThrow(() -> new IllegalArgumentException("Route not found"));
+        currentUser.requireId(route.getUser().getId());
         routePlaceRepository.deleteByRouteId(routeId);
         routeRepository.deleteById(routeId);
     }

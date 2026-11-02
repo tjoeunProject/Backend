@@ -78,13 +78,13 @@ class RouteOptimizer:
             # 거리 행렬 생성
             dist_matrix = np.zeros((num_places, num_places), dtype=int)
             for i in range(num_places):
-                for j in range(num_places):
-                    if i != j:
-                        dist_km = geodesic(
-                            (day_places[i]['lat'], day_places[i]['lng']),
-                            (day_places[j]['lat'], day_places[j]['lng'])
-                        ).km
-                        dist_matrix[i][j] = int(dist_km * 1000)
+                for j in range(i + 1, num_places):
+                    distance = int(geodesic(
+                        (day_places[i]['lat'], day_places[i]['lng']),
+                        (day_places[j]['lat'], day_places[j]['lng'])
+                    ).km * 1000)
+                    dist_matrix[i][j] = distance
+                    dist_matrix[j][i] = distance
 
             # 시작점(0)과 도착점(마지막) 고정
             manager = pywrapcp.RoutingIndexManager(

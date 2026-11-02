@@ -1,0 +1,48 @@
+{
+  "scenario": "single new place per route; 20ms fixture provider delay",
+  "database": "H2, actual Spring services and repositories",
+  "python_runtime_metadata_correction": "Earlier Python records said 3.13; executable verified as 3.12.14",
+  "baseline": {
+    "TX_TOTAL_MS": [
+      45.4267,
+      43.7339,
+      38.3077,
+      32.993,
+      32.6296
+    ],
+    "TX_PROVIDER_HELD_MS": [
+      33.8754,
+      35.5236,
+      26.7569,
+      20.9946,
+      21.7375
+    ]
+  },
+  "candidate": {
+    "TX_TOTAL_MS": [
+      39.0185,
+      35.3754,
+      32.2987,
+      31.0445,
+      28.1232
+    ],
+    "TX_PROVIDER_HELD_MS": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "warmup": 2,
+  "samples": 5,
+  "order": "sequential JVMs",
+  "concurrency": 1,
+  "paid_calls": 0,
+  "budget": "total median <= baseline * 1.5 +10ms; provider wait inside transaction ==0; atomicity required",
+  "verdict": "PASS",
+  "limitations": [
+    "Fixture delay, not actual Google latency",
+    "Sequential order, small sample; no production speedup claim"
+  ]
+}
