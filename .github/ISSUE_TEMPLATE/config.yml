@@ -1,0 +1,10 @@
+{
+  "blank_issues_enabled": true,
+  "contact_links": [
+    {
+      "name": "RoutePick 이슈 운영 보고서",
+      "url": "https://github.com/tjoeunProject/Backend/issues/59",
+      "about": "작성 기준·진행 상태·PR 연결과 시범 운영을 확인합니다."
+    }
+  ]
+}

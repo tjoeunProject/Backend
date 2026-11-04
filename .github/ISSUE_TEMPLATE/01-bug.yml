@@ -1,0 +1,130 @@
+{
+  "name": "버그·회귀 신고",
+  "description": "기대 동작과 실제 동작의 차이 및 재현 근거를 기록합니다.",
+  "title": "[버그] ",
+  "body": [
+    {
+      "type": "markdown",
+      "attributes": {
+        "value": "Backend 이슈 운영 v1입니다. [운영 보고서](https://github.com/tjoeunProject/Backend/issues/59)와 저장소의 .github/ISSUE_WORKFLOW.md를 참고하세요. 이슈 등록은 접수이며 자동 구현을 시작하지 않습니다. 공개 이슈에 자격증명·개인정보·악용 가능한 상세 절차를 적지 마세요."
+      }
+    },
+    {
+      "type": "dropdown",
+      "id": "status",
+      "attributes": {
+        "label": "현재 상태",
+        "description": "신규 등록은 접수입니다. 이후 담당자가 본문 이 한 항목만 갱신합니다.",
+        "options": [
+          "접수"
+        ],
+        "default": 0
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "dropdown",
+      "id": "area",
+      "attributes": {
+        "label": "영역",
+        "multiple": true,
+        "options": [
+          "Spring API·권한",
+          "Python AI 서비스",
+          "DB·인증",
+          "빌드·검증 기반",
+          "복수 저장소"
+        ]
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "input",
+      "id": "version",
+      "attributes": {
+        "label": "대상 버전·환경",
+        "description": "브랜치/커밋 SHA와 실행 환경. 모르면 미확인으로 적어 주세요.",
+        "placeholder": "integration/routepick-improvements / SHA / 로컬 또는 스테이징"
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "dropdown",
+      "id": "evidence",
+      "attributes": {
+        "label": "근거 수준",
+        "options": [
+          "재현됨 — 기대값과 실제값 비교",
+          "코드 근거 — 실행 미확인",
+          "의심 — 추가 조사 필요",
+          "미검증 — 환경 또는 근거 필요"
+        ]
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "symptom",
+      "attributes": {
+        "label": "기대 동작과 실제 동작",
+        "description": "독립된 기대값, 실제 결과와 영향을 구분해 주세요."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "reproduction",
+      "attributes": {
+        "label": "발생 조건·재현 근거",
+        "description": "단계·입력 조건·빈도를 적고, 재현하지 못했다면 확인한 코드와 미검증 사항을 적어 주세요. 민감한 보안 재현은 공개하지 마세요."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "acceptance",
+      "attributes": {
+        "label": "완료 조건",
+        "description": "독립적으로 판정할 수 있는 체크리스트로 적어 주세요. 코드·통합 검증·운영 적용 완료를 구분합니다."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "verification",
+      "attributes": {
+        "label": "검증 계획·성능 기준",
+        "description": "동작 변경은 TDD red/green과 회귀 검사, 비교 가능한 성능/자원/오류 기준을 정합니다. 조사라면 실행 계획과 결과 기록 방법을 적습니다. N/A 또는 BLOCKED는 이유를 적어 주세요."
+      },
+      "validations": {
+        "required": true
+      }
+    },
+    {
+      "type": "textarea",
+      "id": "links",
+      "attributes": {
+        "label": "담당·분류·연결 작업",
+        "description": "담당(미지정 가능), 주유형, G/RP 식별자, 관련 PR/이슈 전체 URL과 선행 작업을 적습니다. 없으면 없음으로 적어 주세요.",
+        "placeholder": "담당: 미지정\n유형: fix / feat / docs / build / test / refactor / perf / ci / chore / style\n묶음: G3\n대표 이슈:\n관련 PR:\n선행 작업:"
+      },
+      "validations": {
+        "required": true
+      }
+    }
+  ]
+}
